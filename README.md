@@ -35,6 +35,16 @@ when using the **--inplace** option.
 
 ## Installation
 
+### GitHub Releases
+
+Versioned packages are published on
+[GitHub Releases](https://github.com/AlfaPC11/adfmt/releases):
+
+* Arch Linux: `.pkg.tar.zst`
+* Debian and Ubuntu: `.deb`
+* Fedora and other RPM-based distributions: `.rpm`
+* Windows x86-64: Inno Setup installer `.exe` and portable `.exe`
+
 ### Installing with DUB
 
 ```sh

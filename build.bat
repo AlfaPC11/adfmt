@@ -9,7 +9,7 @@ set STD=
 set STDD=
 set STDXALLOCATOR=
 set STDXALLOCATORBLOCKS=
-set OBIN=bin\dfmt
+set OBIN=bin\adfmt
 
 :: git might not be installed, so we provide 0.0.0 as a fallback or use
 :: the existing githash file if existent

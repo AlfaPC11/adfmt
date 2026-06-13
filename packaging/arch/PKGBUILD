@@ -1,0 +1,39 @@
+# Maintainer: Alfa <AlfaPC11@users.noreply.github.com>
+# SPDX-License-Identifier: BSL-1.0
+
+pkgname=adfmt
+pkgver=0.3.0
+pkgrel=1
+pkgdesc="Alfa's D Formatter with YAML configuration and independent brace styles"
+arch=('x86_64')
+url='https://github.com/AlfaPC11/adfmt'
+license=('BSL-1.0')
+depends=('gcc-libs' 'glibc')
+makedepends=('dub' 'ldc')
+provides=('adfmt')
+conflicts=('adfmt-git')
+options=('!debug')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+  cd "$srcdir/$pkgname-$pkgver"
+  dub build --build=release --compiler=ldc2
+}
+
+check() {
+  cd "$srcdir/$pkgname-$pkgver"
+  dub test --compiler=ldc2
+}
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  install -Dm755 bin/adfmt "$pkgdir/usr/bin/adfmt"
+  install -Dm644 LICENSE.txt "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 PATENTS "$pkgdir/usr/share/licenses/$pkgname/PATENTS"
+  install -Dm644 NOTICE "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  cp -r docs examples "$pkgdir/usr/share/doc/$pkgname/"
+  install -Dm644 bash-completion/completions/adfmt \
+    "$pkgdir/usr/share/bash-completion/completions/adfmt"
+}

@@ -2,7 +2,7 @@
 # Build the Windows binaries under Linux
 set -eux -o pipefail
 
-BIN_NAME=dfmt
+BIN_NAME=adfmt
 
 # Allow the script to be run from anywhere
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

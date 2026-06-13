@@ -16,8 +16,8 @@ case "$ARCH" in
     *) echo "Unknown ARCH: $ARCH"; exit 1
 esac
 
-archiveName="dfmt-$VERSION-$OS-$ARCH_SUFFIX.tar.gz"
+archiveName="adfmt-$VERSION-$OS-$ARCH_SUFFIX.tar.gz"
 
 echo "Building $archiveName"
 ${MAKE:-make} ldc LDC_FLAGS="${LDC_FLAGS[*]} -Jbin"
-tar cvfz "bin/$archiveName" -C bin dfmt
+tar cvfz "bin/$archiveName" -C bin adfmt

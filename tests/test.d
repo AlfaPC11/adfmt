@@ -18,7 +18,7 @@ int main()
         foreach (entry; dirEntries(".", "*.d", SpanMode.shallow).filter!(e => e.baseName(".d") != "test"))
         {
             const source = entry.baseName;
-            if (source == "mixed_braces.d")
+            if (source == "mixed_braces.d" || source == "adfmt_options.d")
                 continue;
             const outFileName = buildPath(braceStyle, source ~ ".out");
             const refFileName = buildPath(braceStyle, source ~ ".ref");
@@ -44,6 +44,17 @@ int main()
     if (const result = spawnProcess(mixedCommand, stdin, File(mixedOutput, "w")).wait)
         return result;
     if (int ret = diff("mixed_braces.d.ref", mixedOutput))
+        return ret;
+
+    const optionsOutput = "adfmt_options.d.out";
+    scope (exit)
+        if (optionsOutput.exists)
+            remove(optionsOutput);
+    const optionsCommand = [adfmt, "--config=config-options", "adfmt_options.d"];
+    writeln(optionsCommand.join(" "));
+    if (const result = spawnProcess(optionsCommand, stdin, File(optionsOutput, "w")).wait)
+        return result;
+    if (int ret = diff("adfmt_options.d.ref", optionsOutput))
         return ret;
 
     foreach (entry; dirEntries("expected_failures", "*.d", SpanMode.shallow))

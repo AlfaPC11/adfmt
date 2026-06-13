@@ -109,6 +109,16 @@ else
             case "space_after_keywords":
                 optConfig.dfmt_space_after_keywords = optVal;
                 break;
+            case "space_before_braces":
+                optConfig.adfmt_space_before_braces = optVal;
+                break;
+            case "space_around_binary_operators":
+                optConfig.adfmt_space_around_binary_operators = optVal;
+                break;
+            case "indent_case_labels":
+                optConfig.dfmt_align_switch_statements =
+                    optVal == OptionalBoolean.t ? OptionalBoolean.f : OptionalBoolean.t;
+                break;
             default:
                 assert(false, "Invalid command-line switch");
             }
@@ -122,18 +132,23 @@ else
                 "align_switch_statements", &handleBooleans,
                 "brace_style", &optConfig.dfmt_brace_style,
                 "declaration_brace_style", &optConfig.dfmt_declaration_brace_style,
+                "function_brace_style", &optConfig.dfmt_function_brace_style,
                 "control_brace_style", &optConfig.dfmt_control_brace_style,
                 "config|c", &explicitConfigDir,
                 "end_of_line", &optConfig.end_of_line,
                 "help|h", &showHelp,
                 "indent_size", &optConfig.indent_size,
+                "continuation_indent_width", &optConfig.adfmt_continuation_indent_width,
                 "indent_style|t", &optConfig.indent_style,
+                "indent_case_labels", &handleBooleans,
                 "inplace|i", &inplace,
                 "max_line_length", &optConfig.max_line_length,
                 "soft_max_line_length", &optConfig.dfmt_soft_max_line_length,
                 "outdent_attributes", &handleBooleans,
                 "space_after_cast", &handleBooleans,
                 "space_after_keywords", &handleBooleans,
+                "space_before_braces", &handleBooleans,
+                "space_around_binary_operators", &handleBooleans,
                 "selective_import_space", &handleBooleans,
                 "space_before_function_parameters", &handleBooleans,
                 "split_operator_at_line_end", &handleBooleans,
@@ -145,7 +160,9 @@ else
                 "template_constraint_style", &optConfig.dfmt_template_constraint_style,
                 "keep_line_breaks", &handleBooleans,
                 "single_indent", &handleBooleans,
-                "reflow_property_chains", &handleBooleans);
+                "reflow_property_chains", &handleBooleans,
+                "wrapping_newline_penalty", &optConfig.adfmt_wrapping_newline_penalty,
+                "wrapping_long_line_penalty", &optConfig.adfmt_wrapping_long_line_penalty);
             // dfmt on
         }
         catch (GetOptException e)
@@ -384,19 +401,25 @@ Formatting Options:
             `
     --declaration_brace_style   `, optionsToString!(typeof(Config.dfmt_declaration_brace_style)),
             `
+    --function_brace_style      `, optionsToString!(typeof(Config.dfmt_function_brace_style)),
+            `
     --control_brace_style       `, optionsToString!(typeof(Config.dfmt_control_brace_style)),
             `
     --end_of_line               `, optionsToString!(typeof(Config.end_of_line)), `
     --indent_size
+    --continuation_indent_width
     --indent_style, -t          `,
             optionsToString!(typeof(Config.indent_style)), `
     --keep_line_breaks
+    --indent_case_labels
     --soft_max_line_length
     --max_line_length
     --outdent_attributes
     --space_after_cast
     --space_before_function_parameters
     --space_after_keywords
+    --space_before_braces
+    --space_around_binary_operators
     --selective_import_space
     --single_template_constraint_indent
     --split_operator_at_line_end
@@ -406,6 +429,8 @@ Formatting Options:
     --space_before_named_arg_colon
     --single_indent
     --reflow_property_chains
+    --wrapping_newline_penalty
+    --wrapping_long_line_penalty
         `,
             optionsToString!(typeof(Config.dfmt_template_constraint_style)));
 }

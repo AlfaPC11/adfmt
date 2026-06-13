@@ -18,8 +18,8 @@ struct State
         import core.bitop : popcnt, bsf;
         import std.algorithm : min, map, sum;
 
-        immutable int remainingCharsMultiplier = 25;
-        immutable int newlinePenalty = 480;
+        immutable int remainingCharsMultiplier = config.adfmt_wrapping_long_line_penalty;
+        immutable int newlinePenalty = config.adfmt_wrapping_newline_penalty;
 
         this.breaks = breaks;
         this._cost = 0;
@@ -71,9 +71,11 @@ struct State
                 }
                 i = j;
                 if (indentLevel < 0)
-                    ll = (abs(indentLevel) + 1) * config.indent_size;
+                    ll = abs(indentLevel) * config.indent_size
+                        + config.adfmt_continuation_indent_width;
                 else
-                    ll = (indentLevel + (i == 0 ? 0 : 1)) * config.indent_size;
+                    ll = indentLevel * config.indent_size
+                        + (i == 0 ? 0 : config.adfmt_continuation_indent_width);
                 if (b)
                     break;
             }

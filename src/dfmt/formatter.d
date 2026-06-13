@@ -139,8 +139,9 @@ private:
     BraceStyle braceStyleAt(size_t tokenIndex) const
     {
         immutable tokenLocation = tokens[tokenIndex].index;
-        immutable isDeclarationBody = astInformation.funBodyLocations.canFindIndex(tokenLocation)
-            || astInformation.aggregateBodyLocations.canFindIndex(tokenLocation)
+        if (astInformation.funBodyLocations.canFindIndex(tokenLocation))
+            return config.functionBraceStyle();
+        immutable isDeclarationBody = astInformation.aggregateBodyLocations.canFindIndex(tokenLocation)
             || astInformation.enumBodyLocations.canFindIndex(tokenLocation);
         return isDeclarationBody ? config.declarationBraceStyle() : config.controlBraceStyle();
     }
@@ -850,7 +851,8 @@ private:
             indents.popWrapIndents();
 
             sBraceDepth++;
-            if (peekBackIsOneOf(true, tok!")", tok!"identifier"))
+            if (peekBackIsOneOf(true, tok!")", tok!"identifier")
+                    && config.adfmt_space_before_braces)
                 write(" ");
             immutable bool multiline = isMultilineAt(index);
             writeToken();
@@ -880,7 +882,8 @@ private:
                 else if (braceStyle == BraceStyle.knr && astInformation.funBodyLocations.canFindIndex(tIndex)
                         && (peekBackIs(tok!")") || (!peekBackIs(tok!"do") && peekBack().text != "body")))
                     newline();
-                else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
+                else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";")
+                        && config.adfmt_space_before_braces)
                     write(" ");
                 writeToken();
             }
@@ -1330,6 +1333,8 @@ private:
         case tok!"%":
         binary:
             immutable bool isWrapToken = linebreakHints.canFind(index);
+            immutable string binarySpace =
+                config.adfmt_space_around_binary_operators ? " " : "";
             if (config.dfmt_keep_line_breaks == OptionalBoolean.t && index > 0) {
                 const operatorLine = tokens[index].line;
                 const rightOperandLine = tokens[index + 1].line;
@@ -1340,7 +1345,7 @@ private:
                     if (!peekBackIs(tok!"comment"))
                         newline();
                 } else {
-                    write(" ");
+                    write(binarySpace);
                 }
                 if (rightOperandLine > operatorLine && !indents.topIs(tok!"enum")) {
                     pushWrapIndent();
@@ -1351,20 +1356,20 @@ private:
                     if (!peekBackIs(tok!"comment"))
                         newline();
                 } else {
-                    write(" ");
+                    write(binarySpace);
                 }
             } else if (config.dfmt_split_operator_at_line_end) {
                 if (isWrapToken) {
                     if (!indents.topIs(tok!"enum"))
                         pushWrapIndent();
-                    write(" ");
+                    write(binarySpace);
                     writeToken();
                     newline();
                 } else {
-                    write(" ");
+                    write(binarySpace);
                     writeToken();
                     if (!currentIs(tok!"comment"))
-                        write(" ");
+                        write(binarySpace);
                 }
             } else {
                 if (isWrapToken) {
@@ -1373,11 +1378,11 @@ private:
                     newline();
                     writeToken();
                 } else {
-                    write(" ");
+                    write(binarySpace);
                     writeToken();
                 }
                 if (!currentIs(tok!"comment"))
-                    write(" ");
+                    write(binarySpace);
             }
             break;
         default:
@@ -1678,14 +1683,33 @@ private:
     {
         import dfmt.editorconfig : IndentStyle;
 
+        import std.algorithm.comparison : min;
+
+        immutable int continuationLevels = min(cast(int) indents.wrapIndents, indentLevel);
+        immutable int regularLevels = indentLevel - continuationLevels;
         if (config.indent_style == IndentStyle.tab) {
-            foreach (i; 0 .. indentLevel) {
+            immutable bool continuationUsesTabs =
+                config.adfmt_continuation_indent_width == config.tab_width;
+            immutable int tabLevels = regularLevels
+                + (continuationUsesTabs ? continuationLevels : 0);
+            foreach (i; 0 .. tabLevels) {
                 currentLineLength += config.tab_width;
                 output.put("\t");
             }
+            if (!continuationUsesTabs)
+                foreach (i; 0 .. continuationLevels)
+                    foreach (j; 0 .. config.adfmt_continuation_indent_width) {
+                        output.put(" ");
+                        currentLineLength++;
+                    }
         } else {
-            foreach (i; 0 .. indentLevel)
+            foreach (i; 0 .. regularLevels)
                 foreach (j; 0 .. config.indent_size) {
+                    output.put(" ");
+                    currentLineLength++;
+                }
+            foreach (i; 0 .. continuationLevels)
+                foreach (j; 0 .. config.adfmt_continuation_indent_width) {
                     output.put(" ");
                     currentLineLength++;
                 }

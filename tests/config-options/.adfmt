@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: BSL-1.0
+
+BasedOnStyle: Alfa
+ColumnLimit: 36
+SoftColumnLimit: 28
+
+Indent:
+  Width: 2
+  ContinuationWidth: 6
+  CaseLabels: true
+
+Braces:
+  Declarations: allman
+  Functions: stroustrup
+  ControlStatements: knr
+
+Spacing:
+  BeforeBraces: false
+  AroundBinaryOperators: false
+
+Wrapping:
+  NewlinePenalty: 240
+  LongLinePenalty: 50

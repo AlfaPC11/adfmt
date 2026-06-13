@@ -43,11 +43,19 @@ struct Config
     ///
     BraceStyle dfmt_declaration_brace_style;
     ///
+    BraceStyle dfmt_function_brace_style;
+    ///
     BraceStyle dfmt_control_brace_style;
     ///
     OptionalBoolean dfmt_outdent_attributes;
     ///
     int dfmt_soft_max_line_length = -1;
+    ///
+    int adfmt_continuation_indent_width = -1;
+    ///
+    int adfmt_wrapping_newline_penalty = -1;
+    ///
+    int adfmt_wrapping_long_line_penalty = -1;
     ///
     OptionalBoolean dfmt_space_after_cast;
     ///
@@ -72,7 +80,12 @@ struct Config
     OptionalBoolean dfmt_single_indent;
     ///
     OptionalBoolean dfmt_reflow_property_chains;
+    ///
     OptionalBoolean dfmt_space_before_named_arg_colon;
+    ///
+    OptionalBoolean adfmt_space_before_braces;
+    ///
+    OptionalBoolean adfmt_space_around_binary_operators;
 
     mixin StandardEditorConfigFields;
 
@@ -92,9 +105,13 @@ struct Config
         dfmt_align_switch_statements = OptionalBoolean.t;
         dfmt_brace_style = BraceStyle.allman;
         dfmt_declaration_brace_style = BraceStyle._unspecified;
+        dfmt_function_brace_style = BraceStyle._unspecified;
         dfmt_control_brace_style = BraceStyle._unspecified;
         dfmt_outdent_attributes = OptionalBoolean.t;
         dfmt_soft_max_line_length = 80;
+        adfmt_continuation_indent_width = 4;
+        adfmt_wrapping_newline_penalty = 480;
+        adfmt_wrapping_long_line_penalty = 25;
         dfmt_space_after_cast = OptionalBoolean.t;
         dfmt_space_after_keywords = OptionalBoolean.t;
         dfmt_space_before_function_parameters = OptionalBoolean.f;
@@ -108,6 +125,8 @@ struct Config
         dfmt_single_indent = OptionalBoolean.f;
         dfmt_reflow_property_chains = OptionalBoolean.t;
         dfmt_space_before_named_arg_colon = OptionalBoolean.f;
+        adfmt_space_before_braces = OptionalBoolean.t;
+        adfmt_space_around_binary_operators = OptionalBoolean.t;
     }
 
     BraceStyle declarationBraceStyle() const
@@ -120,6 +139,12 @@ struct Config
     {
         return dfmt_control_brace_style == BraceStyle._unspecified
             ? dfmt_brace_style : dfmt_control_brace_style;
+    }
+
+    BraceStyle functionBraceStyle() const
+    {
+        return dfmt_function_brace_style == BraceStyle._unspecified
+            ? declarationBraceStyle() : dfmt_function_brace_style;
     }
 
     /**
@@ -147,11 +172,20 @@ struct Config
             return format("Indent width must be greater than zero (got %d)", indent_size);
         if (tab_width <= 0)
             return format("Tab width must be greater than zero (got %d)", tab_width);
+        if (adfmt_continuation_indent_width <= 0)
+            return format("Continuation indent width must be greater than zero (got %d)",
+                adfmt_continuation_indent_width);
         if (max_line_length <= 0)
             return format("Column limit must be greater than zero (got %d)", max_line_length);
         if (dfmt_soft_max_line_length <= 0)
             return format("Soft column limit must be greater than zero (got %d)",
                 dfmt_soft_max_line_length);
+        if (adfmt_wrapping_newline_penalty <= 0)
+            return format("Wrapping newline penalty must be greater than zero (got %d)",
+                adfmt_wrapping_newline_penalty);
+        if (adfmt_wrapping_long_line_penalty <= 0)
+            return format("Wrapping long-line penalty must be greater than zero (got %d)",
+                adfmt_wrapping_long_line_penalty);
         if (dfmt_soft_max_line_length > max_line_length)
             return format(
                 "Column limit (%d) must be greater than or equal to soft column limit (%d)",

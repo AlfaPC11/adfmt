@@ -10,7 +10,8 @@ _adfmt()
 
 	booleans="--align_switch_statements --outdent_attributes --space_after_cast\
 		--space_before_function_parameters --selective_import_space\
-		--split_operator_at_line_end --compact_labeled_statements"
+		--split_operator_at_line_end --compact_labeled_statements\
+		--indent_case_labels --space_before_braces --space_around_binary_operators"
 
 	# Uncomment code below to print the list of boolean options incase you edit it
 	# and replace it in the case below
@@ -20,9 +21,10 @@ _adfmt()
 	#bared_booleans=\"${booleans// /\"|\"}\"
 	#echo ${bared_booleans}
 
-	opts="--help -h --inplace -i --version --brace_style --declaration_brace_style --control_brace_style\
-		--end_of_line --indent_size --indent_style -t --soft_max_line_length\
-		--max_line_length ${booleans} --template_constraint_style"
+	opts="--help -h --inplace -i --version --brace_style --declaration_brace_style --function_brace_style\
+		--control_brace_style --end_of_line --indent_size --continuation_indent_width\
+		--indent_style -t --soft_max_line_length --max_line_length ${booleans}\
+		--template_constraint_style --wrapping_newline_penalty --wrapping_long_line_penalty"
 
 	eolOpts="lf cr crlf"
 	boolOpts="true false"
@@ -37,7 +39,7 @@ _adfmt()
 
 
 	case "${prev}" in
-		"--brace_style"|"--declaration_brace_style"|"--control_brace_style")
+		"--brace_style"|"--declaration_brace_style"|"--function_brace_style"|"--control_brace_style")
 			COMPREPLY=($(compgen -W "${braceOpts}" -- ${cur}))
 			return 0
 			;;
@@ -55,7 +57,7 @@ _adfmt()
 			COMPREPLY=($(compgen -W "${constraintOpts}" -- ${cur}))
 			return 0
 			;;
-		"--align_switch_statements"|"--outdent_attributes"|"--space_after_cast"|"--space_before_function_parameters"|"--selective_import_space"|"--split_operator_at_line_end"|"--compact_labeled_statements")
+		"--align_switch_statements"|"--outdent_attributes"|"--space_after_cast"|"--space_before_function_parameters"|"--selective_import_space"|"--split_operator_at_line_end"|"--compact_labeled_statements"|"--indent_case_labels"|"--space_before_braces"|"--space_around_binary_operators")
 			COMPREPLY=($(compgen -W "${boolOpts}" -- ${cur}))
 			return 0
 			;;

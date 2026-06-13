@@ -32,14 +32,20 @@ control-flow braces.
 BasedOnStyle: Alfa
 ```
 
-### dfmt
+### Other profiles
 
-The `dfmt` profile preserves upstream-compatible defaults: 4-space indentation,
-a 120-column hard limit, an 80-column soft limit, automatic input line endings,
-and Allman braces for both declarations and control flow.
+| Profile | Main behavior |
+|---------|---------------|
+| `dfmt` | Upstream-compatible defaults and Allman braces |
+| `Allman` | Every supported brace category starts on a new line |
+| `K&R` | K&R function braces and same-line control braces |
+| `Stroustrup` | Same-line opening braces; `else`, `catch`, and `finally` start on new lines |
+| `OTBS` | Opening braces and continuation keywords stay on the same line |
+| `Linux` | Tabs of width 8, Allman type declarations, K&R functions and controls |
+| `Compact` | Two-space indentation, 100 columns, OTBS braces |
 
 ```yaml
-BasedOnStyle: dfmt
+BasedOnStyle: Stroustrup
 ```
 
 When `BasedOnStyle` is omitted, no complete profile is applied. Only keys
@@ -50,19 +56,22 @@ written in `.adfmt` override lower-precedence EditorConfig values.
 | Nested key | Flat alias | Values | Alfa default |
 |------------|------------|--------|--------------|
 | `Language` | - | `D` | `D` |
-| `BasedOnStyle` | - | `Alfa`, `dfmt` | no profile |
+| `BasedOnStyle` | - | `Alfa`, `dfmt`, `Allman`, `K&R`, `Stroustrup`, `OTBS`, `Linux`, `Compact` | no profile |
 | `DisableFormat` | - | `true`, `false` | `false` |
 | `ColumnLimit` | - | positive integer | `120` |
 | `SoftColumnLimit` | - | positive integer, at most `ColumnLimit` | `100` |
 | `LineEnding` | - | `default`, `lf`, `cr`, `crlf` | `lf` |
 | `Indent.Width` | `IndentWidth` | positive integer | `4` |
+| `Indent.ContinuationWidth` | `ContinuationIndentWidth` | positive integer | `4` |
 | `Indent.TabWidth` | `TabWidth` | positive integer | `4` |
 | `Indent.Style` | `UseTab` | `space`, `tab`, `never`, `always` | `space` |
 | `Indent.AlignSwitchStatements` | `AlignSwitchStatements` | boolean | `true` |
+| `Indent.CaseLabels` | `IndentCaseLabels` | boolean | `false` |
 | `Indent.OutdentAttributes` | `OutdentAttributes` | boolean | `true` |
 | `Indent.SingleContinuationIndent` | `SingleIndent` | boolean | `false` |
 | `Braces.Default` | `BraceStyle` | `allman`, `otbs`, `stroustrup`, `knr` | `allman` |
 | `Braces.Declarations` | `DeclarationBraceStyle` | brace style | `allman` |
+| `Braces.Functions` | `FunctionBraceStyle` | brace style | inherits declarations |
 | `Braces.ControlStatements` | `ControlBraceStyle` | brace style | `knr` |
 | `Spacing.AfterCast` | `SpaceAfterCast` | boolean | `true` |
 | `Spacing.AfterKeywords` | `SpaceAfterKeywords` | boolean | `true` |
@@ -70,11 +79,15 @@ written in `.adfmt` override lower-precedence EditorConfig values.
 | `Spacing.SelectiveImports` | `SelectiveImportSpace` | boolean | `true` |
 | `Spacing.BeforeAssociativeArrayColon` | `SpaceBeforeAssociativeArrayColon` | boolean | `false` |
 | `Spacing.BeforeNamedArgumentColon` | `SpaceBeforeNamedArgumentColon` | boolean | `false` |
+| `Spacing.BeforeBraces` | `SpaceBeforeBraces` | boolean | `true` |
+| `Spacing.AroundBinaryOperators` | `SpaceAroundBinaryOperators` | boolean | `true` |
 | `Wrapping.KeepExistingLineBreaks` | `KeepLineBreaks` | boolean | `false` |
 | `Wrapping.SplitOperatorAtLineEnd` | `SplitOperatorAtLineEnd` | boolean | `false` |
 | `Wrapping.ReflowPropertyChains` | `ReflowPropertyChains` | boolean | `true` |
 | `Wrapping.TemplateConstraints` | `TemplateConstraintStyle` | see below | `conditional-newline-indent` |
 | `Wrapping.SingleTemplateConstraintIndent` | `SingleTemplateConstraintIndent` | boolean | `false` |
+| `Wrapping.NewlinePenalty` | `WrappingNewlinePenalty` | positive integer | `480` |
+| `Wrapping.LongLinePenalty` | `WrappingLongLinePenalty` | positive integer | `25` |
 | `Statements.CompactLabels` | `CompactLabeledStatements` | boolean | `true` |
 
 Template constraint styles are `conditional-newline-indent`,
@@ -88,6 +101,7 @@ otherwise be ambiguous:
 IndentWidth: 2
 Indent:
   Width: 4
+  ContinuationWidth: 4
 ```
 
 ## Complete nested example
@@ -103,15 +117,17 @@ LineEnding: lf
 
 Indent:
   Width: 4
+  ContinuationWidth: 4
   TabWidth: 4
   Style: space
-  AlignSwitchStatements: true
+  CaseLabels: false
   OutdentAttributes: true
   SingleContinuationIndent: false
 
 Braces:
   Default: allman
   Declarations: allman
+  Functions: allman
   ControlStatements: knr
 
 Spacing:
@@ -121,6 +137,8 @@ Spacing:
   SelectiveImports: true
   BeforeAssociativeArrayColon: false
   BeforeNamedArgumentColon: false
+  BeforeBraces: true
+  AroundBinaryOperators: true
 
 Wrapping:
   KeepExistingLineBreaks: false
@@ -128,6 +146,8 @@ Wrapping:
   ReflowPropertyChains: true
   TemplateConstraints: conditional-newline-indent
   SingleTemplateConstraintIndent: false
+  NewlinePenalty: 480
+  LongLinePenalty: 25
 
 Statements:
   CompactLabels: true
@@ -146,3 +166,16 @@ adfmt rejects:
 - a soft column limit greater than the hard column limit
 
 Errors include the `.adfmt` path and the option that caused the failure.
+
+## Behavioral notes
+
+- `Braces.Functions` overrides `Braces.Declarations` only for function bodies.
+- `Indent.CaseLabels: true` is the readable inverse of the legacy
+  `AlignSwitchStatements` option. Do not specify both in one file.
+- `Indent.ContinuationWidth` controls wrapping indentation independently from
+  normal block indentation.
+- A lower `Wrapping.NewlinePenalty` makes line breaks cheaper.
+- A higher `Wrapping.LongLinePenalty` makes text beyond `SoftColumnLimit` more
+  expensive.
+- `Spacing.BeforeBraces: false` affects same-line braces only. Allman braces
+  remain on their own line.

@@ -147,6 +147,11 @@ Config parseAdfmtConfig(string path)
             markConfigured("Indent.Width", key);
             result.indent_size = positiveIntegerValue(key, value);
             break;
+        case "ContinuationIndentWidth":
+        case "Indent.ContinuationWidth":
+            markConfigured("Indent.ContinuationWidth", key);
+            result.adfmt_continuation_indent_width = positiveIntegerValue(key, value);
+            break;
         case "TabWidth":
         case "Indent.TabWidth":
             markConfigured("Indent.TabWidth", key);
@@ -167,8 +172,15 @@ Config parseAdfmtConfig(string path)
             break;
         case "AlignSwitchStatements":
         case "Indent.AlignSwitchStatements":
-            markConfigured("Indent.AlignSwitchStatements", key);
+            markConfigured("Indent.SwitchCaseLabels", key);
             result.dfmt_align_switch_statements = booleanValue(key, value);
+            break;
+        case "IndentCaseLabels":
+        case "Indent.CaseLabels":
+            markConfigured("Indent.SwitchCaseLabels", key);
+            result.dfmt_align_switch_statements =
+                booleanValue(key, value) == OptionalBoolean.t
+                ? OptionalBoolean.f : OptionalBoolean.t;
             break;
         case "OutdentAttributes":
         case "Indent.OutdentAttributes":
@@ -189,6 +201,11 @@ Config parseAdfmtConfig(string path)
         case "Braces.Declarations":
             markConfigured("Braces.Declarations", key);
             result.dfmt_declaration_brace_style = braceValue(key, value);
+            break;
+        case "FunctionBraceStyle":
+        case "Braces.Functions":
+            markConfigured("Braces.Functions", key);
+            result.dfmt_function_brace_style = braceValue(key, value);
             break;
         case "ControlBraceStyle":
         case "Braces.ControlStatements":
@@ -225,6 +242,16 @@ Config parseAdfmtConfig(string path)
             markConfigured("Spacing.BeforeNamedArgumentColon", key);
             result.dfmt_space_before_named_arg_colon = booleanValue(key, value);
             break;
+        case "SpaceBeforeBraces":
+        case "Spacing.BeforeBraces":
+            markConfigured("Spacing.BeforeBraces", key);
+            result.adfmt_space_before_braces = booleanValue(key, value);
+            break;
+        case "SpaceAroundBinaryOperators":
+        case "Spacing.AroundBinaryOperators":
+            markConfigured("Spacing.AroundBinaryOperators", key);
+            result.adfmt_space_around_binary_operators = booleanValue(key, value);
+            break;
         case "KeepLineBreaks":
         case "Wrapping.KeepExistingLineBreaks":
             markConfigured("Wrapping.KeepExistingLineBreaks", key);
@@ -249,6 +276,16 @@ Config parseAdfmtConfig(string path)
         case "Wrapping.SingleTemplateConstraintIndent":
             markConfigured("Wrapping.SingleTemplateConstraintIndent", key);
             result.dfmt_single_template_constraint_indent = booleanValue(key, value);
+            break;
+        case "WrappingNewlinePenalty":
+        case "Wrapping.NewlinePenalty":
+            markConfigured("Wrapping.NewlinePenalty", key);
+            result.adfmt_wrapping_newline_penalty = positiveIntegerValue(key, value);
+            break;
+        case "WrappingLongLinePenalty":
+        case "Wrapping.LongLinePenalty":
+            markConfigured("Wrapping.LongLinePenalty", key);
+            result.adfmt_wrapping_long_line_penalty = positiveIntegerValue(key, value);
             break;
         case "CompactLabeledStatements":
         case "Statements.CompactLabels":
@@ -277,8 +314,12 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
     import std.string : toLower;
 
     const normalized = style.toLower;
-    enforce(normalized == "alfa" || normalized == "dfmt",
-        format("%s: unknown BasedOnStyle '%s'; expected Alfa or dfmt", path, style));
+    enforce(normalized == "alfa" || normalized == "dfmt" || normalized == "allman"
+            || normalized == "k&r" || normalized == "knr"
+            || normalized == "stroustrup" || normalized == "otbs"
+            || normalized == "linux" || normalized == "compact",
+        format("%s: unknown BasedOnStyle '%s'; expected Alfa, dfmt, Allman, "
+            ~ "K&R, Stroustrup, OTBS, Linux, or Compact", path, style));
 
     config.initializeWithDefaults();
     if (normalized == "alfa")
@@ -287,6 +328,57 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.dfmt_soft_max_line_length = 100;
         config.dfmt_declaration_brace_style = BraceStyle.allman;
         config.dfmt_control_brace_style = BraceStyle.knr;
+    }
+    else if (normalized == "allman")
+    {
+        config.dfmt_brace_style = BraceStyle.allman;
+        config.dfmt_declaration_brace_style = BraceStyle.allman;
+        config.dfmt_function_brace_style = BraceStyle.allman;
+        config.dfmt_control_brace_style = BraceStyle.allman;
+    }
+    else if (normalized == "k&r" || normalized == "knr")
+    {
+        config.dfmt_brace_style = BraceStyle.knr;
+        config.dfmt_declaration_brace_style = BraceStyle.knr;
+        config.dfmt_function_brace_style = BraceStyle.knr;
+        config.dfmt_control_brace_style = BraceStyle.knr;
+    }
+    else if (normalized == "stroustrup")
+    {
+        config.dfmt_brace_style = BraceStyle.stroustrup;
+        config.dfmt_declaration_brace_style = BraceStyle.stroustrup;
+        config.dfmt_function_brace_style = BraceStyle.stroustrup;
+        config.dfmt_control_brace_style = BraceStyle.stroustrup;
+    }
+    else if (normalized == "otbs")
+    {
+        config.dfmt_brace_style = BraceStyle.otbs;
+        config.dfmt_declaration_brace_style = BraceStyle.otbs;
+        config.dfmt_function_brace_style = BraceStyle.otbs;
+        config.dfmt_control_brace_style = BraceStyle.otbs;
+    }
+    else if (normalized == "linux")
+    {
+        config.dfmt_brace_style = BraceStyle.knr;
+        config.dfmt_declaration_brace_style = BraceStyle.allman;
+        config.dfmt_function_brace_style = BraceStyle.knr;
+        config.dfmt_control_brace_style = BraceStyle.knr;
+        config.indent_size = 8;
+        config.tab_width = 8;
+        config.indent_style = IndentStyle.tab;
+        config.adfmt_continuation_indent_width = 8;
+    }
+    else if (normalized == "compact")
+    {
+        config.dfmt_brace_style = BraceStyle.otbs;
+        config.dfmt_declaration_brace_style = BraceStyle.otbs;
+        config.dfmt_function_brace_style = BraceStyle.otbs;
+        config.dfmt_control_brace_style = BraceStyle.otbs;
+        config.indent_size = 2;
+        config.tab_width = 2;
+        config.adfmt_continuation_indent_width = 2;
+        config.max_line_length = 100;
+        config.dfmt_soft_max_line_length = 80;
     }
 }
 
@@ -312,6 +404,7 @@ unittest
     const flat = parse("flat", `
 BasedOnStyle: Alfa
 IndentWidth: 2
+ContinuationIndentWidth: 6
 TabWidth: 8
 UseTab: always
 AlignSwitchStatements: false
@@ -319,6 +412,7 @@ OutdentAttributes: false
 SingleIndent: true
 BraceStyle: otbs
 DeclarationBraceStyle: allman
+FunctionBraceStyle: stroustrup
 ControlBraceStyle: knr
 SpaceAfterCast: false
 SpaceAfterKeywords: false
@@ -326,17 +420,22 @@ SpaceBeforeFunctionParameters: true
 SelectiveImportSpace: false
 SpaceBeforeAssociativeArrayColon: true
 SpaceBeforeNamedArgumentColon: true
+SpaceBeforeBraces: false
+SpaceAroundBinaryOperators: false
 KeepLineBreaks: true
 SplitOperatorAtLineEnd: true
 ReflowPropertyChains: false
 TemplateConstraintStyle: always-newline
 SingleTemplateConstraintIndent: true
+WrappingNewlinePenalty: 500
+WrappingLongLinePenalty: 30
 CompactLabeledStatements: false
 `);
     const nested = parse("nested", `
 BasedOnStyle: Alfa
 Indent:
   Width: 2
+  ContinuationWidth: 6
   TabWidth: 8
   Style: tab
   AlignSwitchStatements: false
@@ -345,6 +444,7 @@ Indent:
 Braces:
   Default: otbs
   Declarations: allman
+  Functions: stroustrup
   ControlStatements: knr
 Spacing:
   AfterCast: false
@@ -353,12 +453,16 @@ Spacing:
   SelectiveImports: false
   BeforeAssociativeArrayColon: true
   BeforeNamedArgumentColon: true
+  BeforeBraces: false
+  AroundBinaryOperators: false
 Wrapping:
   KeepExistingLineBreaks: true
   SplitOperatorAtLineEnd: true
   ReflowPropertyChains: false
   TemplateConstraints: always-newline
   SingleTemplateConstraintIndent: true
+  NewlinePenalty: 500
+  LongLinePenalty: 30
 Statements:
   CompactLabels: false
 `);
@@ -368,6 +472,27 @@ Statements:
     assert(alfa.dfmt_soft_max_line_length == 100);
     assert(alfa.declarationBraceStyle() == BraceStyle.allman);
     assert(alfa.controlBraceStyle() == BraceStyle.allman);
+
+    const linux = parse("linux", "BasedOnStyle: Linux\n");
+    assert(linux.indent_style == IndentStyle.tab);
+    assert(linux.functionBraceStyle() == BraceStyle.knr);
+    assert(linux.declarationBraceStyle() == BraceStyle.allman);
+
+    const compact = parse("compact", "BasedOnStyle: Compact\n");
+    assert(compact.indent_size == 2);
+    assert(compact.controlBraceStyle() == BraceStyle.otbs);
+
+    const allman = parse("allman", "BasedOnStyle: Allman\n");
+    assert(allman.functionBraceStyle() == BraceStyle.allman);
+    assert(allman.controlBraceStyle() == BraceStyle.allman);
+
+    const knr = parse("knr", "BasedOnStyle: K&R\n");
+    assert(knr.functionBraceStyle() == BraceStyle.knr);
+    assert(knr.controlBraceStyle() == BraceStyle.knr);
+
+    const stroustrup = parse("stroustrup", "BasedOnStyle: Stroustrup\n");
+    assert(stroustrup.functionBraceStyle() == BraceStyle.stroustrup);
+    assert(stroustrup.controlBraceStyle() == BraceStyle.stroustrup);
 
     void assertConfigError(string yaml, string expected)
     {
@@ -384,6 +509,9 @@ Statements:
 
     assertConfigError("Spcaing:\n  AfterCast: true\n", "unknown .adfmt option 'Spcaing.AfterCast'");
     assertConfigError("IndentWidth: 0\n", "expected a positive integer");
+    assertConfigError("ContinuationIndentWidth: 0\n", "expected a positive integer");
+    assertConfigError("WrappingNewlinePenalty: 0\n", "expected a positive integer");
+    assertConfigError("WrappingLongLinePenalty: 0\n", "expected a positive integer");
     assertConfigError("Braces:\n  Default: java\n", "expected allman, otbs, stroustrup, or knr");
     assertConfigError("BasedOnStyle: dfmt\nColumnLimit: 80\nSoftColumnLimit: 100\n",
         "must be greater than or equal to soft column limit");

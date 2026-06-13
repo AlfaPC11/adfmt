@@ -82,10 +82,12 @@ files that would apply to a D file in the current working directory and for an
 * `--align_switch_statements`: *see dfmt_align_switch_statements [below](#dfmt-specific-properties)*
 * `--brace_style`: *see dfmt_brace_style [below](#dfmt-specific-properties)*
 * `--declaration_brace_style`: *see dfmt_declaration_brace_style [below](#dfmt-specific-properties)*
+* `--function_brace_style`: override brace style for function bodies.
 * `--control_brace_style`: *see dfmt_control_brace_style [below](#dfmt-specific-properties)*
 * `--compact_labeled_statements`: *see dfmt_compact_labeled_statements [below](#dfmt-specific-properties)*
 * `--end_of_line`: *see end_of_line [below](#standard-editorconfig-properties)*
 * `--indent_size`: *see indent_size [below](#standard-editorconfig-properties)*
+* `--continuation_indent_width`: indentation width for wrapped lines.
 * `--indent_style | -t`: *see indent_style [below](#standard-editorconfig-properties)*
 * `--max_line_length`: *see max_line_length [below](#standard-editorconfig-properties)*
 * `--outdent_attributes`: *see dfmt_outdent_attributes [below](#dfmt-specific-properties)*
@@ -103,6 +105,11 @@ files that would apply to a D file in the current working directory and for an
 * `--single_indent`: *see dfmt_single_indent [below](#dfmt-specific-properties)*
 * `--reflow_property_chains`: *see dfmt_property_chains [below](#dfmt-specific-properties)*
 * `--space_after_keywords`: *see dfmt_space_after_keywords [below](#dfmt-specific-properties)*
+* `--space_before_braces`: insert a space before same-line opening braces.
+* `--space_around_binary_operators`: insert spaces around binary operators.
+* `--indent_case_labels`: indent `case` and `default` labels.
+* `--wrapping_newline_penalty`: cost assigned to inserting a line break.
+* `--wrapping_long_line_penalty`: cost per column beyond the soft limit.
 
 ### Example
 ```
@@ -142,6 +149,9 @@ The complete option reference is in
 [docs/configuration.md](docs/configuration.md). Ready-to-use profiles are in
 [examples](examples), and existing dfmt users can follow the
 [migration guide](docs/migration-from-dfmt.md).
+
+See also the [usage examples](docs/examples.md) and
+[frequently asked questions](docs/faq.md).
 
 ```yaml
 Language: D

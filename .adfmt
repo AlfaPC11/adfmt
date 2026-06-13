@@ -10,6 +10,7 @@ LineEnding: lf
 
 Indent:
   Width: 4
+  ContinuationWidth: 4
   TabWidth: 4
   Style: space
   AlignSwitchStatements: true
@@ -19,6 +20,7 @@ Indent:
 Braces:
   Default: allman
   Declarations: allman
+  Functions: allman
   ControlStatements: knr
 
 Spacing:
@@ -28,6 +30,8 @@ Spacing:
   SelectiveImports: true
   BeforeAssociativeArrayColon: false
   BeforeNamedArgumentColon: false
+  BeforeBraces: true
+  AroundBinaryOperators: true
 
 Wrapping:
   KeepExistingLineBreaks: false
@@ -35,6 +39,8 @@ Wrapping:
   ReflowPropertyChains: true
   TemplateConstraints: conditional-newline-indent
   SingleTemplateConstraintIndent: false
+  NewlinePenalty: 480
+  LongLinePenalty: 25
 
 Statements:
   CompactLabels: true

@@ -1,0 +1,40 @@
+# SPDX-License-Identifier: BSL-1.0
+
+Language: D
+BasedOnStyle: Alfa
+DisableFormat: false
+
+ColumnLimit: 120
+SoftColumnLimit: 100
+LineEnding: lf
+
+Indent:
+  Width: 4
+  TabWidth: 4
+  Style: space
+  AlignSwitchStatements: true
+  OutdentAttributes: true
+  SingleContinuationIndent: false
+
+Braces:
+  Default: allman
+  Declarations: allman
+  ControlStatements: knr
+
+Spacing:
+  AfterCast: true
+  AfterKeywords: true
+  BeforeFunctionParameters: false
+  SelectiveImports: true
+  BeforeAssociativeArrayColon: false
+  BeforeNamedArgumentColon: false
+
+Wrapping:
+  KeepExistingLineBreaks: false
+  SplitOperatorAtLineEnd: false
+  ReflowPropertyChains: true
+  TemplateConstraints: conditional-newline-indent
+  SingleTemplateConstraintIndent: false
+
+Statements:
+  CompactLabels: true

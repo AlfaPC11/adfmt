@@ -1,5 +1,7 @@
-# Completion for dfmt
-_dfmt()
+# SPDX-License-Identifier: BSL-1.0
+
+# Completion for adfmt
+_adfmt()
 {
 	local cur prev opts
 	COMPREPLY=()
@@ -18,7 +20,7 @@ _dfmt()
 	#bared_booleans=\"${booleans// /\"|\"}\"
 	#echo ${bared_booleans}
 
-	opts="--help -h --inplace -i --version --brace_style\
+	opts="--help -h --inplace -i --version --brace_style --declaration_brace_style --control_brace_style\
 		--end_of_line --indent_size --indent_style -t --soft_max_line_length\
 		--max_line_length ${booleans} --template_constraint_style"
 
@@ -35,7 +37,7 @@ _dfmt()
 
 
 	case "${prev}" in
-		"--brace_style")
+		"--brace_style"|"--declaration_brace_style"|"--control_brace_style")
 			COMPREPLY=($(compgen -W "${braceOpts}" -- ${cur}))
 			return 0
 			;;
@@ -64,4 +66,4 @@ _dfmt()
 	esac
 	COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
 }
-complete -F _dfmt dfmt
+complete -F _adfmt adfmt

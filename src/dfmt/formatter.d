@@ -1,8 +1,8 @@
-
 //          Copyright Brian Schott 2015.
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-License-Identifier: BSL-1.0
 
 module dfmt.formatter;
 
@@ -27,8 +27,7 @@ import std.algorithm.comparison : among, max;
  * Returns: `true` if the formatting succeeded, `false` of a lexing error. This
  *     function can return `true` if parsing failed.
  */
-bool format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
-        Config* formatterConfig)
+bool format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output, Config* formatterConfig)
 {
     LexerConfig config;
     config.stringBehavior = StringBehavior.source;
@@ -52,8 +51,8 @@ bool format(OutputRange)(string source_desc, ubyte[] buffer, OutputRange output,
     if (!tokenRange.messages.empty)
         return false;
     auto depths = generateDepthInfo(tokens);
-    auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths,
-            output, &astInformation, formatterConfig);
+    auto tokenFormatter = TokenFormatter!OutputRange(buffer, tokens, depths, output,
+            &astInformation, formatterConfig);
     tokenFormatter.format();
     return true;
 }
@@ -64,10 +63,8 @@ immutable(short[]) generateDepthInfo(const Token[] tokens) pure nothrow @trusted
 
     short[] retVal = new short[](tokens.length);
     short depth = 0;
-    foreach (i, ref t; tokens)
-    {
-        switch (t.type)
-        {
+    foreach (i, ref t; tokens) {
+        switch (t.type) {
         case tok!"[":
             depth++;
             goto case;
@@ -102,8 +99,8 @@ struct TokenFormatter(OutputRange)
      *         decisions.
      *     config = ?
      */
-    this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths,
-            OutputRange output, ASTInformation* astInformation, Config* config)
+    this(const ubyte[] rawSource, const(Token)[] tokens, immutable short[] depths, OutputRange output,
+            ASTInformation* astInformation, Config* config)
     {
         this.rawSource = rawSource;
         this.tokens = tokens;
@@ -123,9 +120,8 @@ struct TokenFormatter(OutputRange)
                 this.eolString = "\r\n";
             else if (eol == eol._unspecified)
                 assert(false, "config.end_of_line was unspecified");
-            else
-            {
-                assert (eol == eol._default);
+            else {
+                assert(eol == eol._default);
                 this.eolString = eolStringFromInput;
             }
         }
@@ -139,6 +135,15 @@ struct TokenFormatter(OutputRange)
     }
 
 private:
+
+    BraceStyle braceStyleAt(size_t tokenIndex) const
+    {
+        immutable tokenLocation = tokens[tokenIndex].index;
+        immutable isDeclarationBody = astInformation.funBodyLocations.canFindIndex(tokenLocation)
+            || astInformation.aggregateBodyLocations.canFindIndex(tokenLocation)
+            || astInformation.enumBodyLocations.canFindIndex(tokenLocation);
+        return isDeclarationBody ? config.declarationBraceStyle() : config.controlBraceStyle();
+    }
 
     /// Current indentation level
     int indentLevel;
@@ -222,42 +227,30 @@ private:
         import std.range : assumeSorted;
 
         assert(hasCurrent);
-        if (currentIs(tok!"comment"))
-        {
+        if (currentIs(tok!"comment")) {
             formatComment();
-        }
-        else if (isStringLiteral(current.type)
-                || isNumberLiteral(current.type) || currentIs(tok!"characterLiteral"))
-        {
+        } else if (isStringLiteral(current.type) || isNumberLiteral(current.type) || currentIs(tok!"characterLiteral")) {
             writeToken();
-            if (hasCurrent)
-            {
+            if (hasCurrent) {
                 immutable t = tokens[index].type;
-                if (t == tok!"identifier" || isStringLiteral(t)
-                        || isNumberLiteral(t) || t == tok!"characterLiteral"
-                        // a!"b" function()
-                        || t == tok!"function" || t == tok!"delegate")
+                if (t == tok!"identifier" || isStringLiteral(t) || isNumberLiteral(t)
+                        || t == tok!"characterLiteral"// a!"b" function()
+                         || t == tok!"function" || t == tok!"delegate")
                     write(" ");
             }
-        }
-        else if (currentIs(tok!"module") || currentIs(tok!"import"))
-        {
+        } else if (currentIs(tok!"module") || currentIs(tok!"import")) {
             formatModuleOrImport();
-        }
-        else if (currentIs(tok!"return"))
-        {
+        } else if (currentIs(tok!"return")) {
             // `return` can appear as a member function attribute (e.g. `@trusted return`),
             // in which case it needs a leading space like other keywords handled in formatKeyword().
             if (peekBackIs(tok!"identifier"))
                 writeSpace();
             writeToken();
-            if (hasCurrent && (!currentIs(tok!";") && !currentIs(tok!")") && !currentIs(tok!"{")
-                    && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"do")
-                    && tokens[index].text != "body"))
+            if (hasCurrent && (!currentIs(tok!";") && !currentIs(tok!")")
+                    && !currentIs(tok!"{") && !currentIs(tok!"in") && !currentIs(tok!"out")
+                    && !currentIs(tok!"do") && tokens[index].text != "body"))
                 write(" ");
-        }
-        else if (currentIs(tok!"with"))
-        {
+        } else if (currentIs(tok!"with")) {
             if (indents.length == 0 || !indents.topIsOneOf(tok!"switch", tok!"with"))
                 indents.push(tok!"with");
             writeToken();
@@ -267,70 +260,48 @@ private:
             if (hasCurrent && currentIs(tok!"("))
                 writeParens(false);
             if (hasCurrent && !currentIs(tok!"switch") && !currentIs(tok!"with")
-                    && !currentIs(tok!"{") && !(currentIs(tok!"final") && peekIs(tok!"switch")))
-            {
+                    && !currentIs(tok!"{") && !(currentIs(tok!"final") && peekIs(tok!"switch"))) {
                 newline();
-            }
-            else if (hasCurrent && !currentIs(tok!"{"))
-            {
+            } else if (hasCurrent && !currentIs(tok!"{")) {
                 write(" ");
             }
-        }
-        else if (currentIs(tok!"switch"))
-        {
+        } else if (currentIs(tok!"switch")) {
             formatSwitch();
-        }
-        else if (currentIs(tok!"extern") && peekIs(tok!"("))
-        {
+        } else if (currentIs(tok!"extern") && peekIs(tok!"(")) {
             writeToken();
             write(" ");
-            while (hasCurrent)
-            {
+            while (hasCurrent) {
                 if (currentIs(tok!"("))
                     formatLeftParenOrBracket();
-                else if (currentIs(tok!")"))
-                {
+                else if (currentIs(tok!")")) {
                     formatRightParen();
                     break;
-                }
-                else
+                } else
                     writeToken();
             }
-        }
-        else if (((isBlockHeader() || currentIs(tok!"version")) && peekIs(tok!"("))
-                || (currentIs(tok!"debug") && peekIs(tok!"{")))
-        {
+        } else if (((isBlockHeader() || currentIs(tok!"version")) && peekIs(tok!"("))
+                || (currentIs(tok!"debug") && peekIs(tok!"{"))) {
             if (!assumeSorted(astInformation.constraintLocations).equalRange(current.index).empty)
                 formatConstraint();
             else
                 formatBlockHeader();
-        }
-        else if ((current.text == "body" || current == tok!"do") && peekBackIsFunctionDeclarationEnding()
-                || current == tok!"do" && peekBackIs(tok!"identifier")
-                || current.text == "body" && peekBackIs(tok!"identifier") && peekIs(tok!"{"))
-        {
+        } else if ((current.text == "body" || current == tok!"do")
+                && peekBackIsFunctionDeclarationEnding() || current == tok!"do" && peekBackIs(tok!"identifier")
+                || current.text == "body" && peekBackIs(tok!"identifier") && peekIs(tok!"{")) {
             formatKeyword();
-        }
-        else if (currentIs(tok!"do"))
-        {
+        } else if (currentIs(tok!"do")) {
             formatBlockHeader();
-        }
-        else if (currentIs(tok!"else"))
-        {
+        } else if (currentIs(tok!"else")) {
             formatElse();
-        }
-        else if (currentIs(tok!"asm"))
-        {
+        } else if (currentIs(tok!"asm")) {
             formatKeyword();
             while (hasCurrent && !currentIs(tok!"{"))
                 formatStep();
-            if (hasCurrent)
-            {
+            if (hasCurrent) {
                 int depth = 1;
                 formatStep();
                 inAsm = true;
-                while (hasCurrent && depth > 0)
-                {
+                while (hasCurrent && depth > 0) {
                     if (currentIs(tok!"{"))
                         ++depth;
                     else if (currentIs(tok!"}"))
@@ -339,37 +310,25 @@ private:
                 }
                 inAsm = false;
             }
-        }
-        else if (currentIs(tok!"this"))
-        {
+        } else if (currentIs(tok!"this")) {
             const thisIndex = current.index;
             formatKeyword();
-            if (config.dfmt_space_before_function_parameters
-                && (thisSpace || astInformation.constructorDestructorLocations
-                    .canFindIndex(thisIndex)))
-            {
+            if (config.dfmt_space_before_function_parameters && (thisSpace
+                    || astInformation.constructorDestructorLocations.canFindIndex(thisIndex))) {
                 write(" ");
                 thisSpace = false;
             }
-        }
-        else if (isKeyword(current.type))
-        {
+        } else if (isKeyword(current.type)) {
             if (currentIs(tok!"debug"))
                 inlineElse = true;
             formatKeyword();
-        }
-        else if (isBasicType(current.type))
-        {
+        } else if (isBasicType(current.type)) {
             writeToken();
             if (hasCurrent && (currentIs(tok!"identifier") || isKeyword(current.type) || inAsm))
                 write(" ");
-        }
-        else if (isOperator(current.type))
-        {
+        } else if (isOperator(current.type)) {
             formatOperator();
-        }
-        else if (currentIs(tok!"identifier"))
-        {
+        } else if (currentIs(tok!"identifier")) {
             writeToken();
             //dfmt off
             if (hasCurrent && ( currentIs(tok!"identifier")
@@ -383,25 +342,22 @@ private:
                     || isNumberLiteral(tokens[index].type)
                     || (inAsm  && peekBack2Is(tok!";") && currentIs(tok!"["))
             )))
-            //dfmt on
+             //dfmt on
             {
                 write(" ");
             }
-        }
-        else if (currentIs(tok!"scriptLine") || currentIs(tok!"specialTokenSequence"))
-        {
+        } else if (currentIs(tok!"scriptLine") || currentIs(tok!"specialTokenSequence")) {
             writeToken();
             newline();
-        }
-        else
+        } else
             writeToken();
     }
 
     void formatConstraint()
     {
         import dfmt.editorconfig : OB = OptionalBoolean;
-        with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style)
-        {
+
+        with (TemplateConstraintStyle) final switch (config.dfmt_template_constraint_style) {
         case _unspecified:
             assert(false, "Config was not validated properly");
         case conditional_newline:
@@ -416,19 +372,14 @@ private:
             break;
         case conditional_newline_indent:
             immutable l = currentLineLength + betweenParenLength(tokens[index + 1 .. $]);
-            if (l > config.dfmt_soft_max_line_length)
-            {
-                config.dfmt_single_template_constraint_indent == OB.t ?
-                    pushWrapIndent() : pushWrapIndent(tok!"!");
+            if (l > config.dfmt_soft_max_line_length) {
+                config.dfmt_single_template_constraint_indent == OB.t ? pushWrapIndent() : pushWrapIndent(tok!"!");
                 newline();
-            }
-            else if (peekBackIs(tok!")") || peekBackIs(tok!"identifier"))
+            } else if (peekBackIs(tok!")") || peekBackIs(tok!"identifier"))
                 write(" ");
             break;
-        case always_newline_indent:
-            {
-                config.dfmt_single_template_constraint_indent == OB.t ?
-                    pushWrapIndent() : pushWrapIndent(tok!"!");
+        case always_newline_indent: {
+                config.dfmt_single_template_constraint_indent == OB.t ? pushWrapIndent() : pushWrapIndent(tok!"!");
                 newline();
             }
             break;
@@ -449,8 +400,7 @@ private:
         string commentText = tokens[i].text;
         if (commentText[0 .. 2] == "//")
             commentText = commentText[2 .. $];
-        else
-        {
+        else {
             if (commentText.length > 3)
                 commentText = commentText[2 .. $ - 2];
             else
@@ -463,8 +413,7 @@ private:
     {
         size_t dfmtOff = index;
         size_t dfmtOn = index;
-        foreach (i; dfmtOff + 1 .. tokens.length)
-        {
+        foreach (i; dfmtOff + 1 .. tokens.length) {
             dfmtOn = i;
             if (tokens[i].type != tok!"comment")
                 continue;
@@ -478,8 +427,7 @@ private:
 
     void formatComment()
     {
-        if (commentText(index) == "dfmt off")
-        {
+        if (commentText(index) == "dfmt off") {
             skipFormatting();
             return;
         }
@@ -487,8 +435,7 @@ private:
         immutable bool currIsSlashSlash = tokens[index].text[0 .. 2] == "//";
         immutable prevTokenEndLine = index == 0 ? size_t.max : tokenEndLine(tokens[index - 1]);
         immutable size_t currTokenLine = tokens[index].line;
-        if (index > 0)
-        {
+        if (index > 0) {
             immutable t = tokens[index - 1].type;
             immutable canAddNewline = currTokenLine - prevTokenEndLine < 1;
             if (peekBackIsOperator() && !isSeparationToken(t))
@@ -496,9 +443,8 @@ private:
             else if (peekBackIs(tok!",") && prevTokenEndLine == currTokenLine
                     && indents.indentToMostRecent(tok!"enum") == -1)
                 pushWrapIndent(tok!",");
-            if (peekBackIsOperator() && !peekBackIsOneOf(false, tok!"comment",
-                    tok!"{", tok!"}", tok!":", tok!";", tok!",", tok!"[", tok!"(")
-                    && !canAddNewline && prevTokenEndLine < currTokenLine)
+            if (peekBackIsOperator() && !peekBackIsOneOf(false, tok!"comment", tok!"{", tok!"}",
+                    tok!":", tok!";", tok!",", tok!"[", tok!"(") && !canAddNewline && prevTokenEndLine < currTokenLine)
                 write(" ");
             else if (prevTokenEndLine == currTokenLine || (t == tok!")" && peekIs(tok!"{")))
                 write(" ");
@@ -515,26 +461,18 @@ private:
         }
         writeToken();
         immutable j = justAddedExtraNewline;
-        if (currIsSlashSlash)
-        {
+        if (currIsSlashSlash) {
             newline();
             justAddedExtraNewline = j;
-        }
-        else if (hasCurrent)
-        {
-            if (prevTokenEndLine == tokens[index].line)
-            {
-                if (currentIs(tok!"}"))
-                {
+        } else if (hasCurrent) {
+            if (prevTokenEndLine == tokens[index].line) {
+                if (currentIs(tok!"}")) {
                     if (indents.topIs(tok!"{"))
                         indents.pop();
                     write(" ");
-                }
-                else if (!currentIs(tok!"{"))
+                } else if (!currentIs(tok!"{"))
                     write(" ");
-            }
-            else if (!currentIs(tok!"{") && !currentIs(tok!"in") && !currentIs(tok!"out"))
-            {
+            } else if (!currentIs(tok!"{") && !currentIs(tok!"in") && !currentIs(tok!"out")) {
                 if (currentIs(tok!")") && indents.topIs(tok!","))
                     indents.pop();
                 else if (peekBack2Is(tok!",") && !indents.topIs(tok!",")
@@ -542,8 +480,7 @@ private:
                     pushWrapIndent(tok!",");
                 newline();
             }
-        }
-        else
+        } else
             newline();
     }
 
@@ -551,75 +488,56 @@ private:
     {
         immutable t = current.type;
         writeToken();
-        if (currentIs(tok!"("))
-        {
+        if (currentIs(tok!"(")) {
             writeParens(false);
             return;
         }
         write(" ");
-        while (hasCurrent)
-        {
-            if (currentIs(tok!";"))
-            {
+        while (hasCurrent) {
+            if (currentIs(tok!";")) {
                 indents.popWrapIndents();
                 indentLevel = indents.indentLevel;
                 writeToken();
-                if (index >= tokens.length)
-                {
+                if (index >= tokens.length) {
                     newline();
                     break;
                 }
-                if (currentIs(tok!"comment") && current.line == peekBack().line)
-                {
+                if (currentIs(tok!"comment") && current.line == peekBack().line) {
                     break;
-                }
-                else if (currentIs(tok!"{") && config.dfmt_brace_style == BraceStyle.allman)
+                } else if (currentIs(tok!"{") && braceStyleAt(index) == BraceStyle.allman)
                     break;
-                else if (t == tok!"import" && !currentIs(tok!"import")
-                        && !currentIs(tok!"}")
-                            && !((currentIs(tok!"public")
-                                || currentIs(tok!"private")
-                                || currentIs(tok!"static"))
-                            && peekIs(tok!"import")) && !indents.topIsOneOf(tok!"if",
-                            tok!"debug", tok!"version"))
-                {
+                else if (t == tok!"import" && !currentIs(tok!"import") && !currentIs(tok!"}")
+                        && !((currentIs(tok!"public") || currentIs(tok!"private")
+                            || currentIs(tok!"static")) && peekIs(tok!"import"))
+                        && !indents.topIsOneOf(tok!"if", tok!"debug", tok!"version")) {
                     simpleNewline();
                     currentLineLength = 0;
                     justAddedExtraNewline = true;
                     newline();
-                }
-                else
+                } else
                     newline();
                 break;
-            }
-            else if (currentIs(tok!":"))
-            {
+            } else if (currentIs(tok!":")) {
                 if (config.dfmt_selective_import_space)
                     write(" ");
                 writeToken();
                 if (!currentIs(tok!"comment"))
                     write(" ");
                 pushWrapIndent(tok!",");
-            }
-            else if (currentIs(tok!"comment"))
-            {
-                if (peekBack.line != current.line)
-                {
+            } else if (currentIs(tok!"comment")) {
+                if (peekBack.line != current.line) {
                     // The comment appears on its own line, keep it there.
-                    if (!peekBackIs(tok!"comment"))
-                        // Comments are already properly separated.
+                    if (!peekBackIs(tok!"comment")) // Comments are already properly separated.
                         newline();
                 }
                 formatStep();
-            }
-            else
+            } else
                 formatStep();
         }
     }
 
     void formatLeftParenOrBracket()
-    in
-    {
+    in {
         assert(currentIs(tok!"(") || currentIs(tok!"["));
     }
     do
@@ -629,8 +547,7 @@ private:
         immutable p = current.type;
         regenLineBreakHintsIfNecessary(index);
         writeToken();
-        if (p == tok!"(")
-        {
+        if (p == tok!"(") {
             ++parenDepthOnLine;
             // If the file starts with an open paren, just give up. This isn't
             // valid D code.
@@ -649,8 +566,7 @@ private:
         immutable bool arrayInitializerStart = p == tok!"["
             && astInformation.arrayStartLocations.canFindIndex(tokens[index - 1].index);
 
-        if (arrayInitializerStart && isMultilineAt(index - 1))
-        {
+        if (arrayInitializerStart && isMultilineAt(index - 1)) {
             revertParenIndentation();
 
             // Use the close bracket as the indent token to distinguish
@@ -663,18 +579,15 @@ private:
             // wrap and temp are set manually to the values it would actually
             // receive here because we want to set breakEveryItem for the ] token to know if
             // we should definitely always new-line after every comma for a big AA
-            detail.breakEveryItem = astInformation.assocArrayStartLocations.canFindIndex(
-                    tokens[index - 1].index);
+            detail.breakEveryItem = astInformation.assocArrayStartLocations.canFindIndex(tokens[index - 1].index);
             detail.preferLongBreaking = true;
 
             indents.push(tok!"]", detail);
             newline();
             immutable size_t j = expressionEndIndex(index);
-            linebreakHints = chooseLineBreakTokens(index, tokens[index .. j],
-                    depths[index .. j], config, currentLineLength, indentLevel);
-        }
-        else if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t)
-        {
+            linebreakHints = chooseLineBreakTokens(index, tokens[index .. j], depths[index .. j],
+                    config, currentLineLength, indentLevel);
+        } else if (p == tok!"[" && config.dfmt_keep_line_breaks == OptionalBoolean.t) {
             revertParenIndentation();
             IndentStack.Details detail;
 
@@ -684,13 +597,10 @@ private:
             detail.mini = tokens[index].line == tokens[index - 1].line;
 
             indents.push(tok!"]", detail);
-            if (!detail.mini)
-            {
+            if (!detail.mini) {
                 newline();
             }
-        }
-        else if (arrayInitializerStart)
-        {
+        } else if (arrayInitializerStart) {
             // This is a short (non-breaking) array/AA value
             IndentStack.Details detail;
             detail.wrap = false;
@@ -706,24 +616,18 @@ private:
             detail.mini = true;
 
             indents.push(tok!"]", detail);
-        }
-        else if (p == tok!"[")
-        {
+        } else if (p == tok!"[") {
             // array item access
             IndentStack.Details detail;
             detail.wrap = false;
             detail.temp = true;
             detail.mini = true;
             indents.push(tok!"]", detail);
-        }
-        else if (!currentIs(tok!")") && !currentIs(tok!"]")
+        } else if (!currentIs(tok!")") && !currentIs(tok!"]")
                 && (linebreakHints.canFindIndex(index - 1) || (linebreakHints.length == 0
-                    && currentLineLength > config.max_line_length)))
-        {
+                    && currentLineLength > config.max_line_length))) {
             newline();
-        }
-        else if (onNextLine)
-        {
+        } else if (onNextLine) {
             newline();
         }
     }
@@ -732,14 +636,12 @@ private:
     {
         import std.algorithm.searching : canFind, until;
 
-        if (tokens[index .. $].until!(tok => tok.line != current.line).canFind!(x => x.type == tok!"]"))
-        {
+        if (tokens[index .. $].until!(tok => tok.line != current.line)
+                .canFind!(x => x.type == tok!"]")) {
             return;
         }
-        if (parenDepthOnLine)
-        {
-            foreach (i; 0 .. parenDepthOnLine)
-            {
+        if (parenDepthOnLine) {
+            foreach (i; 0 .. parenDepthOnLine) {
                 indents.pop();
             }
         }
@@ -747,8 +649,7 @@ private:
     }
 
     void formatRightParen()
-    in
-    {
+    in {
         assert(currentIs(tok!")"));
     }
     do
@@ -763,41 +664,32 @@ private:
         if (indents.topIs(tok!"."))
             indents.pop();
 
-        if (onNextLine)
-        {
+        if (onNextLine) {
             newline();
         }
-        if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in")
-            || peekIs(tok!"out") || peekIs(tok!"do") || peekIsBody))
-        {
+        if (parenDepth == 0 && (peekIs(tok!"is") || peekIs(tok!"in") || peekIs(tok!"out")
+                || peekIs(tok!"do") || peekIsBody)) {
             writeToken();
-        }
-        else if (peekIsLiteralOrIdent() || peekIsBasicType())
-        {
+        } else if (peekIsLiteralOrIdent() || peekIsBasicType()) {
             writeToken();
             if (spaceAfterParens || parenDepth > 0)
                 writeSpace();
-        }
-        else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens
-                && !peekIs(tok!"in") && !peekIs(tok!"is") && !peekIs(tok!"if"))
-        {
+        } else if ((peekIsKeyword() || peekIs(tok!"@")) && spaceAfterParens && !peekIs(tok!"in")
+                && !peekIs(tok!"is") && !peekIs(tok!"if")) {
             writeToken();
             writeSpace();
-        }
-        else
+        } else
             writeToken();
     }
 
     void formatRightBracket()
-    in
-    {
+    in {
         assert(currentIs(tok!"]"));
     }
     do
     {
         indents.popWrapIndents();
-        if (indents.topIs(tok!"]"))
-        {
+        if (indents.topIs(tok!"]")) {
             if (!indents.topDetails.mini && !indents.topDetails.temp)
                 newline();
             else
@@ -814,8 +706,7 @@ private:
         writeToken();
         if (currentIs(tok!"identifier"))
             writeToken();
-        if (currentIs(tok!"("))
-        {
+        if (currentIs(tok!"(")) {
             writeParens(false);
             if (tokens[index].type == tok!"{")
                 return;
@@ -825,14 +716,9 @@ private:
                 newline();
             else
                 write(" ");
-        }
-        else if (hasCurrent && (currentIs(tok!"@")
-                || isBasicType(tokens[index].type)
-                || currentIs(tok!"invariant")
-                || currentIs(tok!"extern")
-                || currentIs(tok!"identifier"))
-                && !currentIsIndentedTemplateConstraint())
-        {
+        } else if (hasCurrent && (currentIs(tok!"@") || isBasicType(tokens[index].type)
+                || currentIs(tok!"invariant") || currentIs(tok!"extern") || currentIs(tok!"identifier"))
+                && !currentIsIndentedTemplateConstraint()) {
             writeSpace();
         }
     }
@@ -841,72 +727,56 @@ private:
     {
         import dfmt.editorconfig : OptionalBoolean;
         import std.algorithm : canFind, any;
+
         immutable bool isCase = astInformation.caseEndLocations.canFindIndex(current.index);
-        immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(
-                current.line);
-        immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation
-            .canFind!(st => st.startLocation < current.index && current.index < st.endLocation);
+        immutable bool isAttribute = astInformation.attributeDeclarationLines.canFindIndex(current.line);
+        immutable bool isStructInitializer = astInformation.structInfoSortedByEndLocation.canFind!(
+                st => st.startLocation < current.index && current.index < st.endLocation);
         immutable bool isTernary = astInformation.ternaryColonLocations.canFindIndex(current.index);
         immutable bool isNamedArg = astInformation.namedArgumentColonLocations.canFindIndex(current.index);
 
-        if (isCase || isAttribute)
-        {
+        if (isCase || isAttribute) {
             writeToken();
-            if (!currentIs(tok!"{"))
-            {
-                if (isCase && !indents.topIs(tok!"case")
-                        && config.dfmt_align_switch_statements == OptionalBoolean.f)
+            if (!currentIs(tok!"{")) {
+                if (isCase && !indents.topIs(tok!"case") && config.dfmt_align_switch_statements == OptionalBoolean.f)
                     indents.push(tok!"case");
-                else if (isAttribute && !indents.topIs(tok!"@")
-                        && config.dfmt_outdent_attributes == OptionalBoolean.f)
+                else if (isAttribute && !indents.topIs(tok!"@") && config.dfmt_outdent_attributes == OptionalBoolean.f)
                     indents.push(tok!"@");
                 newline();
             }
-        }
-        else if (indents.topIs(tok!"]") && !isTernary) // Associative array
+        } else if (indents.topIs(tok!"]") && !isTernary) // Associative array
         {
             write(config.dfmt_space_before_aa_colon ? " : " : ": ");
             ++index;
-        }
-        // Named function or struct constructor arguments.
-        else if (isNamedArg)
-        {
+        } // Named function or struct constructor arguments.
+        else if (isNamedArg) {
             write(config.dfmt_space_before_named_arg_colon ? " : " : ": ");
             ++index;
-        }
-        else if (peekBackIs(tok!"identifier")
-                && [tok!"{", tok!"}", tok!";", tok!":", tok!","]
-                .any!((ptrdiff_t token) => peekBack2Is(cast(IdType)token, true))
-                && (!isBlockHeader(1) || peekIs(tok!"if")))
-        {
+        } else if (peekBackIs(tok!"identifier") && [
+                tok!"{", tok!"}", tok!";", tok!":", tok!","
+            ].any!((ptrdiff_t token) => peekBack2Is(cast(IdType) token, true))
+                && (!isBlockHeader(1) || peekIs(tok!"if"))) {
             writeToken();
             if (isStructInitializer)
                 write(" ");
             else if (!currentIs(tok!"{"))
                 newline();
-        }
-        else
-        {
+        } else {
             regenLineBreakHintsIfNecessary(index);
             if (peekIs(tok!".."))
                 writeToken();
-            else if (isBlockHeader(1) && !peekIs(tok!"if"))
-            {
+            else if (isBlockHeader(1) && !peekIs(tok!"if")) {
                 writeToken();
                 if (config.dfmt_compact_labeled_statements)
                     write(" ");
                 else
                     newline();
-            }
-            else if (linebreakHints.canFindIndex(index))
-            {
+            } else if (linebreakHints.canFindIndex(index)) {
                 pushWrapIndent();
                 newline();
                 writeToken();
                 write(" ");
-            }
-            else
-            {
+            } else {
                 write(" : ");
                 index++;
             }
@@ -918,43 +788,33 @@ private:
         if (inlineElse && !peekIs(tok!"else"))
             inlineElse = false;
 
-        if ((parenDepth > 0 && sBraceDepth == 0) || (sBraceDepth > 0 && niBraceDepth > 0))
-        {
-            if (currentLineLength > config.dfmt_soft_max_line_length)
-            {
+        if ((parenDepth > 0 && sBraceDepth == 0) || (sBraceDepth > 0 && niBraceDepth > 0)) {
+            if (currentLineLength > config.dfmt_soft_max_line_length) {
                 writeToken();
                 pushWrapIndent(tok!";");
                 newline();
-            }
-            else
-            {
+            } else {
                 if (!(peekIs(tok!";") || peekIs(tok!")") || peekIs(tok!"}")))
                     write("; ");
                 else
                     write(";");
                 index++;
             }
-        }
-        else
-        {
+        } else {
             writeToken();
             indents.popWrapIndents();
             linebreakHints = [];
             while (indents.topIsOneOf(tok!"enum", tok!"try", tok!"catch", tok!"finally", tok!"debug"))
                 indents.pop();
-            if (indents.topAre(tok!"static", tok!"else"))
-            {
+            if (indents.topAre(tok!"static", tok!"else")) {
                 indents.pop();
                 indents.pop();
             }
             indentLevel = indents.indentLevel;
-            if (config.dfmt_brace_style == BraceStyle.allman)
-            {
+            if (config.controlBraceStyle() == BraceStyle.allman) {
                 if (!currentIs(tok!"{"))
                     newline();
-            }
-            else
-            {
+            } else {
                 if (currentIs(tok!"{"))
                     indents.popTempIndents();
                 indentLevel = indents.indentLevel;
@@ -969,29 +829,24 @@ private:
 
         auto tIndex = tokens[index].index;
 
-        if (astInformation.structInitStartLocations.canFindIndex(tIndex))
-        {
+        if (astInformation.structInitStartLocations.canFindIndex(tIndex)) {
             sBraceDepth++;
             immutable bool multiline = isMultilineAt(index);
             writeToken();
-            if (multiline)
-            {
+            if (multiline) {
                 import std.algorithm.searching : find;
 
-                auto indentInfo = astInformation.indentInfoSortedByEndLocation
-                    .find!((a,b) => a.startLocation == b)(tIndex);
+                auto indentInfo = astInformation.indentInfoSortedByEndLocation.find!((a,
+                        b) => a.startLocation == b)(tIndex);
                 assert(indentInfo.length > 0);
-                cast()indentInfo[0].flags |= BraceIndentInfoFlags.tempIndent;
-                cast()indentInfo[0].beginIndentLevel = indents.indentLevel;
+                cast() indentInfo[0].flags |= BraceIndentInfoFlags.tempIndent;
+                cast() indentInfo[0].beginIndentLevel = indents.indentLevel;
 
                 indents.push(tok!"{");
                 newline();
-            }
-            else
+            } else
                 niBraceDepth++;
-        }
-        else if (astInformation.funLitStartLocations.canFindIndex(tIndex))
-        {
+        } else if (astInformation.funLitStartLocations.canFindIndex(tIndex)) {
             indents.popWrapIndents();
 
             sBraceDepth++;
@@ -999,40 +854,30 @@ private:
                 write(" ");
             immutable bool multiline = isMultilineAt(index);
             writeToken();
-            if (multiline)
-            {
+            if (multiline) {
                 indents.push(tok!"{");
                 newline();
-            }
-            else
-            {
+            } else {
                 niBraceDepth++;
                 if (!currentIs(tok!"}"))
                     write(" ");
             }
-        }
-        else
-        {
-            if (peekBackIsSlashSlash())
-            {
-                if (peekBack2Is(tok!";"))
-                {
+        } else {
+            if (peekBackIsSlashSlash()) {
+                if (peekBack2Is(tok!";")) {
                     indents.popTempIndents();
                     indentLevel = indents.indentLevel - 1;
                 }
                 writeToken();
-            }
-            else
-            {
+            } else {
                 if (indents.topIsTemp && indents.indentToMostRecent(tok!"static") == -1)
                     indentLevel = indents.indentLevel - 1;
                 else
                     indentLevel = indents.indentLevel;
-                if (config.dfmt_brace_style == BraceStyle.allman
-                        || peekBackIsOneOf(true, tok!"{", tok!"}"))
+                immutable braceStyle = braceStyleAt(index);
+                if (braceStyle == BraceStyle.allman || peekBackIsOneOf(true, tok!"{", tok!"}"))
                     newline();
-                else if (config.dfmt_brace_style == BraceStyle.knr
-                        && astInformation.funBodyLocations.canFindIndex(tIndex)
+                else if (braceStyle == BraceStyle.knr && astInformation.funBodyLocations.canFindIndex(tIndex)
                         && (peekBackIs(tok!")") || (!peekBackIs(tok!"do") && peekBack().text != "body")))
                     newline();
                 else if (!peekBackIsOneOf(true, tok!"{", tok!"}", tok!";"))
@@ -1050,8 +895,7 @@ private:
     {
         void popToBeginIndent(BraceIndentInfo indentInfo)
         {
-            foreach(i; indentInfo.beginIndentLevel .. indents.indentLevel)
-            {
+            foreach (i; indentInfo.beginIndentLevel .. indents.indentLevel) {
                 indents.pop();
             }
 
@@ -1059,8 +903,7 @@ private:
         }
 
         size_t pos;
-        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index, &pos))
-        {
+        if (astInformation.structInitEndLocations.canFindIndex(tokens[index].index, &pos)) {
             if (sBraceDepth > 0)
                 sBraceDepth--;
             if (niBraceDepth > 0)
@@ -1069,31 +912,23 @@ private:
             // Account for possible function literals in this array which offset
             // the previously set index (pos). Fixes issue #432.
             size_t newPos = pos;
-            while(astInformation.indentInfoSortedByEndLocation[newPos].endLocation <
-                tokens[index].index)
-            {
+            while (astInformation.indentInfoSortedByEndLocation[newPos].endLocation < tokens[index].index) {
                 newPos++;
             }
 
-            if (astInformation.indentInfoSortedByEndLocation[newPos].endLocation ==
-                tokens[index].index)
-            {
+            if (astInformation.indentInfoSortedByEndLocation[newPos].endLocation == tokens[index].index) {
                 pos = newPos;
             }
 
             auto indentInfo = astInformation.indentInfoSortedByEndLocation[pos];
-            if (indentInfo.flags & BraceIndentInfoFlags.tempIndent)
-            {
+            if (indentInfo.flags & BraceIndentInfoFlags.tempIndent) {
                 popToBeginIndent(indentInfo);
                 simpleNewline();
                 indent();
             }
             writeToken();
-        }
-        else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index, &pos))
-        {
-            if (niBraceDepth > 0)
-            {
+        } else if (astInformation.funLitEndLocations.canFindIndex(tokens[index].index, &pos)) {
+            if (niBraceDepth > 0) {
                 if (!peekBackIsSlashSlash() && !peekBackIs(tok!"{"))
                     write(" ");
                 niBraceDepth--;
@@ -1101,44 +936,32 @@ private:
             if (sBraceDepth > 0)
                 sBraceDepth--;
             writeToken();
-        }
-        else
-        {
+        } else {
             // Silly hack to format enums better.
-            if ((peekBackIsLiteralOrIdent() || peekBackIsOneOf(true, tok!")",
-                    tok!",")) && !peekBackIsSlashSlash())
+            if ((peekBackIsLiteralOrIdent() || peekBackIsOneOf(true, tok!")", tok!",")) && !peekBackIsSlashSlash())
                 newline();
             write("}");
             if (index + 1 < tokens.length
                     && astInformation.doubleNewlineLocations.canFindIndex(tokens[index].index)
-                    && !peekIs(tok!"}") && !peekIs(tok!"else")
-                    && !peekIs(tok!";") && !peekIs(tok!"comment", false))
-            {
+                    && !peekIs(tok!"}") && !peekIs(tok!"else") && !peekIs(tok!";") && !peekIs(tok!"comment", false)) {
                 simpleNewline();
                 currentLineLength = 0;
                 justAddedExtraNewline = true;
             }
-            if (config.dfmt_brace_style.among(BraceStyle.otbs, BraceStyle.knr)
-                    && ((peekIs(tok!"else")
-                            && !indents.topAre(tok!"static", tok!"if")
-                            && !indents.topIs(tok!"foreach") && !indents.topIs(tok!"for")
-                            && !indents.topIs(tok!"while") && !indents.topIs(tok!"do"))
-                        || peekIs(tok!"catch") || peekIs(tok!"finally")))
-            {
+            if (config.controlBraceStyle().among(BraceStyle.otbs, BraceStyle.knr)
+                    && ((peekIs(tok!"else") && !indents.topAre(tok!"static", tok!"if")
+                        && !indents.topIs(tok!"foreach") && !indents.topIs(tok!"for")
+                        && !indents.topIs(tok!"while") && !indents.topIs(tok!"do"))
+                        || peekIs(tok!"catch") || peekIs(tok!"finally"))) {
                 write(" ");
                 index++;
-            }
-            else
-            {
-                if (!peekIs(tok!",") && !peekIs(tok!")")
-                        && !peekIs(tok!";") && !peekIs(tok!"{"))
-                {
+            } else {
+                if (!peekIs(tok!",") && !peekIs(tok!")") && !peekIs(tok!";") && !peekIs(tok!"{")) {
                     index++;
                     if (indents.topIs(tok!"static"))
                         indents.pop();
                     newline();
-                }
-                else
+                } else
                     index++;
             }
         }
@@ -1150,8 +973,7 @@ private:
             indents.pop();
         indents.push(tok!"switch");
         writeToken(); // switch
-        if (config.dfmt_space_after_keywords)
-        {
+        if (config.dfmt_space_after_keywords) {
             write(" ");
         }
     }
@@ -1161,18 +983,14 @@ private:
         if (indents.topIs(tok!"!"))
             indents.pop();
         immutable bool a = !currentIs(tok!"version") && !currentIs(tok!"debug");
-        immutable bool b = a
-            || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
-        immutable bool c = b
-            || astInformation.conditionalStatementLocations.canFindIndex(current.index);
-        immutable bool shouldPushIndent = (c || peekBackIs(tok!"else"))
-            && !(currentIs(tok!"if") && indents.topIsWrap());
+        immutable bool b = a || astInformation.conditionalWithElseLocations.canFindIndex(current.index);
+        immutable bool c = b || astInformation.conditionalStatementLocations.canFindIndex(current.index);
+        immutable bool shouldPushIndent = (c || peekBackIs(tok!"else")) && !(currentIs(tok!"if")
+                && indents.topIsWrap());
         if (currentIs(tok!"out") && !peekBackIs(tok!"}"))
             newline();
-        if (shouldPushIndent)
-        {
-            if (peekBackIs(tok!"static"))
-            {
+        if (shouldPushIndent) {
+            if (peekBackIs(tok!"static")) {
                 if (indents.topIs(tok!"else"))
                     indents.pop();
                 if (!indents.topIs(tok!"static"))
@@ -1182,55 +1000,38 @@ private:
         }
         writeToken();
 
-        if (currentIs(tok!"("))
-        {
-            if (config.dfmt_space_after_keywords)
-            {
+        if (currentIs(tok!"(")) {
+            if (config.dfmt_space_after_keywords) {
                 write(" ");
             }
             writeParens(false);
         }
 
-        if (hasCurrent)
-        {
-            if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch")))
-            {
-                if (config.dfmt_space_after_keywords)
-                {
+        if (hasCurrent) {
+            if (currentIs(tok!"switch") || (currentIs(tok!"final") && peekIs(tok!"switch"))) {
+                if (config.dfmt_space_after_keywords) {
                     write(" ");
                 }
-            }
-            else if (currentIs(tok!"comment"))
-            {
+            } else if (currentIs(tok!"comment")) {
                 formatStep();
-            }
-            else if (!shouldPushIndent)
-            {
+            } else if (!shouldPushIndent) {
                 if (!currentIs(tok!"{") && !currentIs(tok!";"))
                     write(" ");
-            }
-            else if (hasCurrent && !currentIs(tok!"{") && !currentIs(tok!";") && !currentIs(tok!"in") &&
-                !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body")
-            {
+            } else if (hasCurrent && !currentIs(tok!"{") && !currentIs(tok!";")
+                    && !currentIs(tok!"in") && !currentIs(tok!"out") && !currentIs(tok!"do") && current.text != "body") {
                 newline();
-            }
-            else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
-            {
+            } else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if")) {
                 // Hacks to format braced vs non-braced static if declarations.
                 indents.pop();
                 indents.pop();
                 indents.push(tok!"if");
                 formatLeftBrace();
-            }
-            else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach"))
-            {
+            } else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach")) {
                 indents.pop();
                 indents.pop();
                 indents.push(tok!"foreach");
                 formatLeftBrace();
-            }
-            else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach_reverse"))
-            {
+            } else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"foreach_reverse")) {
                 indents.pop();
                 indents.pop();
                 indents.push(tok!"foreach_reverse");
@@ -1243,20 +1044,15 @@ private:
     {
         writeToken();
         if (inlineElse || currentIs(tok!"if") || currentIs(tok!"version")
-                || (currentIs(tok!"static") && peekIs(tok!"if")))
-        {
+                || (currentIs(tok!"static") && peekIs(tok!"if"))) {
             if (indents.topIs(tok!"if") || indents.topIs(tok!"version"))
                 indents.pop();
             inlineElse = false;
             write(" ");
-        }
-        else if (currentIs(tok!":"))
-        {
+        } else if (currentIs(tok!":")) {
             writeToken();
             newline();
-        }
-        else if (!currentIs(tok!"{") && !currentIs(tok!"comment"))
-        {
+        } else if (!currentIs(tok!"{") && !currentIs(tok!"comment")) {
             //indents.dump();
             while (indents.topIsOneOf(tok!"foreach", tok!"for", tok!"while"))
                 indents.pop();
@@ -1264,9 +1060,7 @@ private:
                 indents.pop();
             indents.push(tok!"else");
             newline();
-        }
-        else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if"))
-        {
+        } else if (currentIs(tok!"{") && indents.topAre(tok!"static", tok!"if")) {
             indents.pop();
             indents.pop();
             indents.push(tok!"else");
@@ -1277,8 +1071,7 @@ private:
     {
         import dfmt.editorconfig : OptionalBoolean;
 
-        switch (current.type)
-        {
+        switch (current.type) {
         case tok!"default":
             writeToken();
             break;
@@ -1289,8 +1082,7 @@ private:
             break;
         case tok!"out":
             if (!peekBackIsSlashSlash) {
-                if (!peekBackIs(tok!"}")
-                        && astInformation.contractLocations.canFindIndex(current.index))
+                if (!peekBackIs(tok!"}") && astInformation.contractLocations.canFindIndex(current.index))
                     newline();
                 else if (peekBackIsKeyword)
                     write(" ");
@@ -1319,27 +1111,24 @@ private:
         case tok!"in":
             immutable isContract = astInformation.contractLocations.canFindIndex(current.index);
             if (!peekBackIsSlashSlash) {
-                if (isContract)
-                {
+                if (isContract) {
                     indents.popTempIndents();
                     newline();
-                }
-                else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
+                } else if (!peekBackIsOneOf(false, tok!"(", tok!",", tok!"!"))
                     write(" ");
             }
             writeToken();
             if (!hasCurrent)
                 return;
-            immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(
-                    current.index);
-            if (isFunctionLit && config.dfmt_brace_style == BraceStyle.allman)
+            immutable isFunctionLit = astInformation.funLitStartLocations.canFindIndex(current.index);
+            if (isFunctionLit && config.declarationBraceStyle() == BraceStyle.allman)
                 newline();
             else if (!isContract || currentIs(tok!"("))
                 write(" ");
             break;
         case tok!"is":
-            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",",
-                    tok!"}", tok!"=", tok!"&&", tok!"||") && !peekBackIsKeyword())
+            if (!peekBackIsOneOf(false, tok!"!", tok!"(", tok!",", tok!"}", tok!"=", tok!"&&", tok!"||")
+                    && !peekBackIsKeyword())
                 write(" ");
             writeToken();
             if (hasCurrent && !currentIs(tok!"(") && !currentIs(tok!"{") && !currentIs(tok!"comment"))
@@ -1351,12 +1140,9 @@ private:
                 write(" ");
             break;
         case tok!"enum":
-            if (peekIs(tok!")") || peekIs(tok!"=="))
-            {
+            if (peekIs(tok!")") || peekIs(tok!"==")) {
                 writeToken();
-            }
-            else
-            {
+            } else {
                 if (peekBackIs(tok!"identifier"))
                     write(" ");
                 indents.push(tok!"enum");
@@ -1365,20 +1151,14 @@ private:
                     write(" ");
             }
             break;
-        case tok!"static":
-            {
-                if (astInformation.staticConstructorDestructorLocations
-                    .canFindIndex(current.index))
-                {
+        case tok!"static": {
+                if (astInformation.staticConstructorDestructorLocations.canFindIndex(current.index)) {
                     thisSpace = true;
                 }
             }
             goto default;
-        case tok!"shared":
-            {
-                if (astInformation.sharedStaticConstructorDestructorLocations
-                    .canFindIndex(current.index))
-                {
+        case tok!"shared": {
+                if (astInformation.sharedStaticConstructorDestructorLocations.canFindIndex(current.index)) {
                     thisSpace = true;
                 }
             }
@@ -1389,27 +1169,19 @@ private:
                 write(" ");
             break;
         default:
-            if (peekBackIs(tok!"identifier"))
-            {
+            if (peekBackIs(tok!"identifier")) {
                 writeSpace();
             }
-            if (index + 1 < tokens.length)
-            {
-                if (!peekIs(tok!"@") && (peekIsOperator()
-                        || peekIs(tok!"out") || peekIs(tok!"in")))
-                {
+            if (index + 1 < tokens.length) {
+                if (!peekIs(tok!"@") && (peekIsOperator() || peekIs(tok!"out") || peekIs(tok!"in"))) {
                     writeToken();
-                }
-                else
-                {
+                } else {
                     writeToken();
-                    if (!currentIsIndentedTemplateConstraint())
-                    {
+                    if (!currentIsIndentedTemplateConstraint()) {
                         writeSpace();
                     }
                 }
-            }
-            else
+            } else
                 writeToken();
             break;
         }
@@ -1417,11 +1189,10 @@ private:
 
     bool currentIsIndentedTemplateConstraint()
     {
-        return hasCurrent
-            && astInformation.constraintLocations.canFindIndex(current.index)
+        return hasCurrent && astInformation.constraintLocations.canFindIndex(current.index)
             && (config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline
-                || config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
-                || currentLineLength >= config.dfmt_soft_max_line_length);
+                    || config.dfmt_template_constraint_style == TemplateConstraintStyle.always_newline_indent
+                    || currentLineLength >= config.dfmt_soft_max_line_length);
     }
 
     void formatOperator()
@@ -1429,32 +1200,24 @@ private:
         import dfmt.editorconfig : OptionalBoolean;
         import std.algorithm : canFind;
 
-        switch (current.type)
-        {
+        switch (current.type) {
         case tok!"*":
-            if (astInformation.spaceAfterLocations.canFindIndex(current.index))
-            {
+            if (astInformation.spaceAfterLocations.canFindIndex(current.index)) {
                 writeToken();
-                if (!currentIs(tok!"*") && !currentIs(tok!")")
-                        && !currentIs(tok!"[") && !currentIs(tok!",") && !currentIs(tok!";"))
-                {
+                if (!currentIs(tok!"*") && !currentIs(tok!")") && !currentIs(tok!"[")
+                        && !currentIs(tok!",") && !currentIs(tok!";")) {
                     write(" ");
                 }
                 break;
-            }
-            else if (astInformation.unaryLocations.canFindIndex(current.index))
-            {
+            } else if (astInformation.unaryLocations.canFindIndex(current.index)) {
                 writeToken();
                 break;
             }
             regenLineBreakHintsIfNecessary(index);
             goto binary;
         case tok!"~":
-            if (peekIs(tok!"this") && peek2Is(tok!"("))
-            {
-                if (!(index == 0 || peekBackIs(tok!"{", true)
-                        || peekBackIs(tok!"}", true) || peekBackIs(tok!";", true)))
-                {
+            if (peekIs(tok!"this") && peek2Is(tok!"(")) {
+                if (!(index == 0 || peekBackIs(tok!"{", true) || peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))) {
                     write(" ");
                 }
                 writeToken();
@@ -1464,8 +1227,7 @@ private:
         case tok!"&":
         case tok!"+":
         case tok!"-":
-            if (astInformation.unaryLocations.canFindIndex(current.index))
-            {
+            if (astInformation.unaryLocations.canFindIndex(current.index)) {
                 writeToken();
                 break;
             }
@@ -1482,8 +1244,7 @@ private:
             formatAt();
             break;
         case tok!"!":
-            if (((peekIs(tok!"is") || peekIs(tok!"in"))
-                    && !peekBackIsOperator()) || peekBackIs(tok!")"))
+            if (((peekIs(tok!"is") || peekIs(tok!"in")) && !peekBackIsOperator()) || peekBackIs(tok!")"))
                 write(" ");
             goto case;
         case tok!"...":
@@ -1510,10 +1271,9 @@ private:
         case tok!".":
             regenLineBreakHintsIfNecessary(index);
             immutable bool ufcsWrap = config.dfmt_reflow_property_chains == OptionalBoolean.t
-                    && astInformation.ufcsHintLocations.canFindIndex(current.index);
-            if (ufcsWrap || linebreakHints.canFind(index) || onNextLine
-                    || (linebreakHints.length == 0 && currentLineLength + nextTokenLength() > config.max_line_length))
-            {
+                && astInformation.ufcsHintLocations.canFindIndex(current.index);
+            if (ufcsWrap || linebreakHints.canFind(index) || onNextLine || (linebreakHints.length == 0
+                    && currentLineLength + nextTokenLength() > config.max_line_length)) {
                 if (!indents.topIs(tok!"."))
                     indents.push(tok!".");
                 if (!peekBackIs(tok!"comment"))
@@ -1570,68 +1330,49 @@ private:
         case tok!"%":
         binary:
             immutable bool isWrapToken = linebreakHints.canFind(index);
-            if (config.dfmt_keep_line_breaks == OptionalBoolean.t && index > 0)
-            {
+            if (config.dfmt_keep_line_breaks == OptionalBoolean.t && index > 0) {
                 const operatorLine = tokens[index].line;
                 const rightOperandLine = tokens[index + 1].line;
 
-                if (tokens[index - 1].line < operatorLine)
-                {
+                if (tokens[index - 1].line < operatorLine) {
                     if (!indents.topIs(tok!"enum"))
                         pushWrapIndent();
                     if (!peekBackIs(tok!"comment"))
                         newline();
-                }
-                else
-                {
+                } else {
                     write(" ");
                 }
-                if (rightOperandLine > operatorLine
-                        && !indents.topIs(tok!"enum"))
-                {
+                if (rightOperandLine > operatorLine && !indents.topIs(tok!"enum")) {
                     pushWrapIndent();
                 }
                 writeToken();
 
-                if (rightOperandLine > operatorLine)
-                {
+                if (rightOperandLine > operatorLine) {
                     if (!peekBackIs(tok!"comment"))
                         newline();
-                }
-                else
-                {
+                } else {
                     write(" ");
                 }
-            }
-            else if (config.dfmt_split_operator_at_line_end)
-            {
-                if (isWrapToken)
-                {
+            } else if (config.dfmt_split_operator_at_line_end) {
+                if (isWrapToken) {
                     if (!indents.topIs(tok!"enum"))
                         pushWrapIndent();
                     write(" ");
                     writeToken();
                     newline();
-                }
-                else
-                {
+                } else {
                     write(" ");
                     writeToken();
                     if (!currentIs(tok!"comment"))
                         write(" ");
                 }
-            }
-            else
-            {
-                if (isWrapToken)
-                {
+            } else {
+                if (isWrapToken) {
                     if (!indents.topIs(tok!"enum"))
                         pushWrapIndent();
                     newline();
                     writeToken();
-                }
-                else
-                {
+                } else {
                     write(" ");
                     writeToken();
                 }
@@ -1652,67 +1393,45 @@ private:
 
         if (config.dfmt_keep_line_breaks == OptionalBoolean.f)
             regenLineBreakHintsIfNecessary(index);
-        if (indents.indentToMostRecent(tok!"enum") != -1
-                && !peekIs(tok!"}") && indents.topIs(tok!"{") && parenDepth == 0)
-        {
+        if (indents.indentToMostRecent(tok!"enum") != -1 && !peekIs(tok!"}")
+                && indents.topIs(tok!"{") && parenDepth == 0) {
             writeToken();
             newline();
-        }
-        else if (indents.topIs(tok!"]") && indents.topDetails.breakEveryItem
-                && !indents.topDetails.mini)
-        {
+        } else if (indents.topIs(tok!"]") && indents.topDetails.breakEveryItem && !indents.topDetails.mini) {
             writeToken();
             newline();
             regenLineBreakHints(index - 1);
-        }
-        else if (indents.topIs(tok!"]") && indents.topDetails.preferLongBreaking
+        } else if (indents.topIs(tok!"]") && indents.topDetails.preferLongBreaking
                 && !currentIs(tok!")") && !currentIs(tok!"]") && !currentIs(tok!"}")
-                && !currentIs(tok!"comment") && index + 1 < tokens.length
-                && isMultilineAt(index + 1, true))
-        {
+                && !currentIs(tok!"comment") && index + 1 < tokens.length && isMultilineAt(index + 1, true)) {
             writeToken();
             newline();
             regenLineBreakHints(index - 1);
-        }
-        else if (config.dfmt_keep_line_breaks == OptionalBoolean.t)
-        {
+        } else if (config.dfmt_keep_line_breaks == OptionalBoolean.t) {
             const commaLine = tokens[index].line;
 
             writeToken();
-            if (indents.topIsWrap && !indents.topIs(tok!","))
-            {
+            if (indents.topIsWrap && !indents.topIs(tok!",")) {
                 indents.pop;
             }
-            if (!currentIs(tok!")") && !currentIs(tok!"]")
-                    && !currentIs(tok!"}") && !currentIs(tok!"comment"))
-            {
-                if (tokens[index].line == commaLine)
-                {
+            if (!currentIs(tok!")") && !currentIs(tok!"]") && !currentIs(tok!"}") && !currentIs(tok!"comment")) {
+                if (tokens[index].line == commaLine) {
                     write(" ");
-                }
-                else
-                {
+                } else {
                     newline();
                 }
             }
-        }
-        else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
-                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length)))
-        {
+        } else if (!peekIs(tok!"}") && (linebreakHints.canFind(index)
+                || (linebreakHints.length == 0 && currentLineLength > config.max_line_length))) {
             pushWrapIndent();
             writeToken();
-            if (indents.topIsWrap && !indents.topIs(tok!","))
-            {
+            if (indents.topIsWrap && !indents.topIs(tok!",")) {
                 indents.pop;
             }
             newline();
-        }
-        else
-        {
+        } else {
             writeToken();
-            if (!currentIs(tok!")") && !currentIs(tok!"]")
-                    && !currentIs(tok!"}") && !currentIs(tok!"comment"))
-            {
+            if (!currentIs(tok!")") && !currentIs(tok!"]") && !currentIs(tok!"}") && !currentIs(tok!"comment")) {
                 write(" ");
             }
         }
@@ -1729,20 +1448,13 @@ private:
         // either the expression end index or the next mandatory line break
         // or a newline inside a string literal, whichever is first.
         auto r = assumeSorted(astInformation.ufcsHintLocations).upperBound(tokens[i].index);
-        immutable ufcsBreakLocation = r.empty
-            ? size_t.max
-            : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
-        immutable multilineStringLocation = tokens[i .. $]
-            .countUntil!(t => t.text.canFind('\n'));
-        immutable size_t j = min(
-                expressionEndIndex(i),
-                ufcsBreakLocation,
+        immutable ufcsBreakLocation = r.empty ? size_t.max : tokens[i .. $].countUntil!(t => t.index == r.front) + i;
+        immutable multilineStringLocation = tokens[i .. $].countUntil!(t => t.text.canFind('\n'));
+        immutable size_t j = min(expressionEndIndex(i), ufcsBreakLocation,
                 multilineStringLocation == -1 ? size_t.max : multilineStringLocation + i + 1);
         // Use magical negative value for array literals and wrap indents
-        immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel
-            : indentLevel;
-        linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j],
-                config, currentLineLength, inLvl);
+        immutable inLvl = (indents.topIsWrap() || indents.topIs(tok!"]")) ? -indentLevel : indentLevel;
+        linebreakHints = chooseLineBreakTokens(i, tokens[i .. j], depths[i .. j], config, currentLineLength, inLvl);
     }
 
     void regenLineBreakHintsIfNecessary(immutable size_t i)
@@ -1770,118 +1482,89 @@ private:
         immutable bool hasCurrent = this.hasCurrent;
 
         if (niBraceDepth > 0 && !peekBackIsSlashSlash() && hasCurrent && tokens[index].type == tok!"}"
-                && !assumeSorted(astInformation.funLitEndLocations).equalRange(
-                    tokens[index].index).empty)
-        {
+                && !assumeSorted(astInformation.funLitEndLocations).equalRange(tokens[index].index).empty) {
             return;
         }
 
         simpleNewline();
 
-        if (!justAddedExtraNewline && index > 0 && hasCurrent
-                && tokens[index].line - tokenEndLine(tokens[index - 1]) > 1)
-        {
+        if (!justAddedExtraNewline && index > 0 && hasCurrent && tokens[index].line - tokenEndLine(tokens[index - 1]) > 1) {
             simpleNewline();
         }
 
         justAddedExtraNewline = false;
         currentLineLength = 0;
 
-        if (hasCurrent)
-        {
+        if (hasCurrent) {
             const isNamedArg = index + 1 < tokens.length
                 && astInformation.namedArgumentColonLocations.canFindIndex(tokens[index + 1].index);
-            if (currentIs(tok!"else"))
-            {
+            if (currentIs(tok!"else")) {
                 immutable i = indents.indentToMostRecent(tok!"if");
                 immutable v = indents.indentToMostRecent(tok!"version");
                 immutable mostRecent = max(i, v);
                 if (mostRecent != -1)
                     indentLevel = mostRecent;
-            }
-            else if (currentIs(tok!"identifier") && peekIs(tok!":") && !isNamedArg)
-            {
+            } else if (currentIs(tok!"identifier") && peekIs(tok!":") && !isNamedArg) {
                 if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true))
                     indents.popTempIndents();
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1 && config.dfmt_align_switch_statements == OptionalBoolean.t)
                     indentLevel = l;
-                else if (astInformation.structInfoSortedByEndLocation
-                    .canFind!(st => st.startLocation < current.index && current.index < st.endLocation)) {
+                else if (astInformation.structInfoSortedByEndLocation.canFind!(st => st.startLocation < current.index
+                        && current.index < st.endLocation)) {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
                     assert(l2 != -1, "Recent '{' is not found despite being in struct initializer");
                     indentLevel = l2 + 1;
-                }
-                else if ((config.dfmt_compact_labeled_statements == OptionalBoolean.f
-                        || !isBlockHeader(2) || peek2Is(tok!"if")) && !indents.topIs(tok!"]"))
-                {
+                } else if ((config.dfmt_compact_labeled_statements == OptionalBoolean.f
+                        || !isBlockHeader(2) || peek2Is(tok!"if")) && !indents.topIs(tok!"]")) {
                     immutable l2 = indents.indentToMostRecent(tok!"{");
                     indentLevel = l2 != -1 ? l2 : indents.indentLevel - 1;
-                }
-                else
+                } else
                     indentLevel = indents.indentLevel;
-            }
-            else if (currentIs(tok!"case") || currentIs(tok!"default"))
-            {
+            } else if (currentIs(tok!"case") || currentIs(tok!"default")) {
 
-                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true)
-                    /**
+                if (peekBackIs(tok!"}", true) || peekBackIs(tok!";", true) /**
                      * The following code is valid and should be indented flatly
                      * case A:
                      * case B:
                      */
-                    || peekBackIs(tok!":", true))
-                {
+                     || peekBackIs(tok!":", true)) {
                     indents.popTempIndents();
                     if (indents.topIs(tok!"case"))
                         indents.pop();
                 }
                 immutable l = indents.indentToMostRecent(tok!"switch");
                 if (l != -1)
-                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t
-                        ? l : indents.indentLevel;
-            }
-            else if (currentIs(tok!")"))
-            {
+                    indentLevel = config.dfmt_align_switch_statements == OptionalBoolean.t ? l : indents.indentLevel;
+            } else if (currentIs(tok!")")) {
                 if (indents.topIs(tok!"("))
                     indents.pop();
                 indentLevel = indents.indentLevel;
-            }
-            else if (currentIs(tok!"{"))
-            {
+            } else if (currentIs(tok!"{")) {
                 indents.popWrapIndents();
-                if ((peekBackIsSlashSlash() && peekBack2Is(tok!";")) || indents.topIs(tok!"]"))
-                {
+                if ((peekBackIsSlashSlash() && peekBack2Is(tok!";")) || indents.topIs(tok!"]")) {
                     indents.popTempIndents();
                     indentLevel = indents.indentLevel;
                 }
-            }
-            else if (currentIs(tok!"}"))
-            {
+            } else if (currentIs(tok!"}")) {
                 indents.popTempIndents();
                 while (indents.topIsOneOf(tok!"case", tok!"@", tok!"static"))
                     indents.pop();
-                if (indents.topIs(tok!"{"))
-                {
+                if (indents.topIs(tok!"{")) {
                     indentLevel = indents.indentToMostRecent(tok!"{");
                     indents.pop();
                 }
-                if (indents.topIsOneOf(tok!"try", tok!"catch"))
-                {
+                if (indents.topIsOneOf(tok!"try", tok!"catch")) {
                     indents.pop();
-                }
-                else while (sBraceDepth == 0 && indents.topIsTemp()
-                        && ((!indents.topIsOneOf(tok!"else", tok!"if",
-                            tok!"static", tok!"version")) || !peekIs(tok!"else")))
-                {
-                    indents.pop();
-                }
-            }
-            else if (currentIs(tok!"]"))
-            {
+                } else
+                    while (sBraceDepth == 0 && indents.topIsTemp()
+                            && ((!indents.topIsOneOf(tok!"else", tok!"if", tok!"static",
+                                tok!"version")) || !peekIs(tok!"else"))) {
+                        indents.pop();
+                    }
+            } else if (currentIs(tok!"]")) {
                 indents.popWrapIndents();
-                if (indents.topIs(tok!"]"))
-                {
+                if (indents.topIs(tok!"]")) {
                     indents.pop();
                 }
                 // Find the initial indentation of constructs like "if" and
@@ -1897,30 +1580,20 @@ private:
                     indents.push(savedIndents.top, savedIndents.topDetails);
                     savedIndents.pop;
                 }
-            }
-            else if (astInformation.attributeDeclarationLines.canFindIndex(current.line))
-            {
-                if (config.dfmt_outdent_attributes == OptionalBoolean.t)
-                {
+            } else if (astInformation.attributeDeclarationLines.canFindIndex(current.line)) {
+                if (config.dfmt_outdent_attributes == OptionalBoolean.t) {
                     immutable l = indents.indentToMostRecent(tok!"{");
                     if (l != -1)
                         indentLevel = l;
-                }
-                else
-                {
+                } else {
                     if (indents.topIs(tok!"@"))
                         indents.pop();
                     indentLevel = indents.indentLevel;
                 }
-            }
-            else if (currentIs(tok!"catch") || currentIs(tok!"finally"))
-            {
+            } else if (currentIs(tok!"catch") || currentIs(tok!"finally")) {
                 indentLevel = indents.indentLevel;
-            }
-            else
-            {
-                if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}",
-                        tok!";") && !indents.topIs(tok!";")))
+            } else {
+                if (indents.topIsTemp() && (peekBackIsOneOf(true, tok!"}", tok!";") && !indents.topIs(tok!";")))
                     indents.popTempIndents();
                 indentLevel = indents.indentLevel;
             }
@@ -1937,22 +1610,18 @@ private:
 
     void writeToken()
     {
-        import std.range:retro;
-        import std.algorithm.searching:countUntil;
-        import std.algorithm.iteration:joiner;
-        import std.string:lineSplitter;
+        import std.range : retro;
+        import std.algorithm.searching : countUntil;
+        import std.algorithm.iteration : joiner;
+        import std.string : lineSplitter;
 
-        if (current.text is null)
-        {
+        if (current.text is null) {
             immutable s = str(current.type);
             currentLineLength += s.length;
             output.put(str(current.type));
-        }
-        else
-        {
+        } else {
             output.put(current.text.lineSplitter.joiner(eolString));
-            switch (current.type)
-            {
+            switch (current.type) {
             case tok!"stringLiteral":
             case tok!"wstringLiteral":
             case tok!"dstringLiteral":
@@ -1972,8 +1641,7 @@ private:
     }
 
     void writeParens(bool spaceAfter)
-    in
-    {
+    in {
         assert(currentIs(tok!"("), str(current.type));
     }
     do
@@ -1983,26 +1651,19 @@ private:
         immutable int startingSBraceDepth = sBraceDepth;
         parenDepth = 0;
 
-        do
-        {
+        do {
             spaceAfterParens = spaceAfter;
-            if (currentIs(tok!";") && niBraceDepth <= startingNiBraceDepth
-                    && sBraceDepth <= startingSBraceDepth)
-            {
-                if (currentLineLength >= config.dfmt_soft_max_line_length)
-                {
+            if (currentIs(tok!";") && niBraceDepth <= startingNiBraceDepth && sBraceDepth <= startingSBraceDepth) {
+                if (currentLineLength >= config.dfmt_soft_max_line_length) {
                     pushWrapIndent();
                     writeToken();
                     newline();
-                }
-                else
-                {
+                } else {
                     writeToken();
                     if (!currentIs(tok!")") && !currentIs(tok!";"))
                         write(" ");
                 }
-            }
-            else
+            } else
                 formatStep();
         }
         while (hasCurrent && parenDepth > 0);
@@ -2017,19 +1678,14 @@ private:
     {
         import dfmt.editorconfig : IndentStyle;
 
-        if (config.indent_style == IndentStyle.tab)
-        {
-            foreach (i; 0 .. indentLevel)
-            {
+        if (config.indent_style == IndentStyle.tab) {
+            foreach (i; 0 .. indentLevel) {
                 currentLineLength += config.tab_width;
                 output.put("\t");
             }
-        }
-        else
-        {
+        } else {
             foreach (i; 0 .. indentLevel)
-                foreach (j; 0 .. config.indent_size)
-                {
+                foreach (j; 0 .. config.indent_size) {
                     output.put(" ");
                     currentLineLength++;
                 }
@@ -2047,23 +1703,18 @@ private:
 
     void pushWrapIndent(IdType type, IndentStack.Details detail)
     {
-        if (parenDepth == 0)
-        {
+        if (parenDepth == 0) {
             if (indents.wrapIndents == 0)
                 indents.push(type, detail);
-        }
-        else if (indents.wrapIndents < 1)
+        } else if (indents.wrapIndents < 1)
             indents.push(type, detail);
     }
 
     void writeSpace()
     {
-        if (onNextLine)
-        {
+        if (onNextLine) {
             newline();
-        }
-        else
-        {
+        } else {
             write(" ");
         }
     }
@@ -2075,8 +1726,7 @@ const pure @safe @nogc:
         immutable bool braces = i < tokens.length && tokens[i].type == tok!"{";
         immutable bool brackets = i < tokens.length && tokens[i].type == tok!"[";
         immutable d = depths[i];
-        while (true)
-        {
+        while (true) {
             if (i >= tokens.length)
                 break;
             if (depths[i] < d)
@@ -2098,8 +1748,8 @@ const pure @safe @nogc:
 
         auto e = expressionEndIndex(i, matchComma);
         immutable int l = currentLineLength + tokens[i .. e].map!(a => tokenLength(a)).sum();
-        return l > config.dfmt_soft_max_line_length || tokens[i .. e].canFind!(
-                a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
+        return l > config.dfmt_soft_max_line_length
+            || tokens[i .. e].canFind!(a => a.type == tok!"comment" || isBlockHeaderToken(a.type))();
     }
 
     bool peekIsKeyword() nothrow
@@ -2136,8 +1786,7 @@ const pure @safe @nogc:
     }
 
     ref current() nothrow
-    in
-    {
+    in {
         assert(hasCurrent);
     }
     do
@@ -2155,8 +1804,7 @@ const pure @safe @nogc:
     {
         if (index == 0)
             return false;
-        switch (tokens[index - 1].type)
-        {
+        switch (tokens[index - 1].type) {
         case tok!"doubleLiteral":
         case tok!"floatLiteral":
         case tok!"idoubleLiteral":
@@ -2184,8 +1832,7 @@ const pure @safe @nogc:
     {
         if (index + 1 >= tokens.length)
             return false;
-        switch (tokens[index + 1].type)
-        {
+        switch (tokens[index + 1].type) {
         case tok!"doubleLiteral":
         case tok!"floatLiteral":
         case tok!"idoubleLiteral":
@@ -2218,8 +1865,7 @@ const pure @safe @nogc:
             return false;
         auto i = index - 1;
         if (ignoreComments)
-            while (tokens[i].type == tok!"comment")
-            {
+            while (tokens[i].type == tok!"comment") {
                 if (i == 0)
                     return false;
                 i--;
@@ -2238,8 +1884,7 @@ const pure @safe @nogc:
             return false;
         auto i = index - 1;
         if (ignoreComments)
-            while (tokens[i].type == tok!"comment")
-            {
+            while (tokens[i].type == tok!"comment") {
                 if (i == 0)
                     return false;
                 i--;
@@ -2287,15 +1932,13 @@ const pure @safe @nogc:
 
     bool peekBackIsFunctionDeclarationEnding() nothrow
     {
-        return peekBackIsOneOf(false, tok!")", tok!"const", tok!"immutable",
-            tok!"inout", tok!"shared", tok!"@", tok!"pure", tok!"nothrow",
-            tok!"return", tok!"scope");
+        return peekBackIsOneOf(false, tok!")", tok!"const", tok!"immutable", tok!"inout",
+                tok!"shared", tok!"@", tok!"pure", tok!"nothrow", tok!"return", tok!"scope");
     }
 
     bool peekBackIsSlashSlash() nothrow
     {
-        return index > 0 && tokens[index - 1].type == tok!"comment"
-            && tokens[index - 1].text[0 .. 2] == "//";
+        return index > 0 && tokens[index - 1].type == tok!"comment" && tokens[index - 1].text[0 .. 2] == "//";
     }
 
     bool currentIs(IdType tokenType) nothrow
@@ -2309,8 +1952,7 @@ const pure @safe @nogc:
         import std.algorithm.searching : count;
         import std.string : representation;
 
-        if (config.dfmt_keep_line_breaks == OptionalBoolean.f || index <= 0)
-        {
+        if (config.dfmt_keep_line_breaks == OptionalBoolean.f || index <= 0) {
             return false;
         }
         // To compare whether 2 tokens are on same line, we need the end line
@@ -2318,8 +1960,7 @@ const pure @safe @nogc:
         // second one (tokens[index]). If a token takes multiple lines (e.g. a
         // multi-line string), we can sum the number of the newlines in the
         // token and tokens[index - 1].line, the start line.
-        const previousTokenEndLineNo = tokens[index - 1].line
-                + tokens[index - 1].text.representation.count('\n');
+        const previousTokenEndLineNo = tokens[index - 1].line + tokens[index - 1].text.representation.count('\n');
 
         return previousTokenEndLineNo < tokens[index].line;
     }
@@ -2329,8 +1970,7 @@ const pure @safe @nogc:
     {
         import std.algorithm : count;
 
-        switch (t.type)
-        {
+        switch (t.type) {
         case tok!"comment":
         case tok!"stringLiteral":
         case tok!"wstringLiteral":
@@ -2344,9 +1984,8 @@ const pure @safe @nogc:
     bool isBlockHeaderToken(const IdType t)
     {
         return t == tok!"for" || t == tok!"foreach" || t == tok!"foreach_reverse"
-            || t == tok!"while" || t == tok!"if" || t == tok!"in"|| t == tok!"out"
-            || t == tok!"do" || t == tok!"catch" || t == tok!"with"
-            || t == tok!"synchronized" || t == tok!"scope" || t == tok!"debug";
+            || t == tok!"while" || t == tok!"if" || t == tok!"in" || t == tok!"out" || t == tok!"do"
+            || t == tok!"catch" || t == tok!"with" || t == tok!"synchronized" || t == tok!"scope" || t == tok!"debug";
     }
 
     bool isBlockHeader(int i = 0) nothrow
@@ -2356,13 +1995,12 @@ const pure @safe @nogc:
         const t = tokens[i + index].type;
         bool isExpressionContract;
 
-        if (i + index + 3 < tokens.length)
-        {
+        if (i + index + 3 < tokens.length) {
             isExpressionContract = (t == tok!"in" && peekImplementation(tok!"(", i + 1, true))
                 || (t == tok!"out" && (peekImplementation(tok!"(", i + 1, true)
-                    && (peekImplementation(tok!";", i + 2, true)
+                        && (peekImplementation(tok!";", i + 2, true)
                         || (peekImplementation(tok!"identifier", i + 2, true)
-                            && peekImplementation(tok!";", i + 3, true)))));
+                        && peekImplementation(tok!";", i + 3, true)))));
         }
 
         return isBlockHeaderToken(t) && !isExpressionContract;
@@ -2370,32 +2008,25 @@ const pure @safe @nogc:
 
     bool isSeparationToken(IdType t) nothrow
     {
-        return t == tok!"," || t == tok!";" || t == tok!":" || t == tok!"("
-            || t == tok!")" || t == tok!"[" || t == tok!"]" || t == tok!"{" || t == tok!"}";
+        return t == tok!"," || t == tok!";" || t == tok!":" || t == tok!"(" || t == tok!")"
+            || t == tok!"[" || t == tok!"]" || t == tok!"{" || t == tok!"}";
     }
 }
 
 bool canFindIndex(const size_t[] items, size_t index, size_t* pos = null) pure @safe @nogc
 {
     import std.range : assumeSorted;
-    if (!pos)
-    {
+
+    if (!pos) {
         return !assumeSorted(items).equalRange(index).empty;
-    }
-    else
-    {
+    } else {
         auto trisection_result = assumeSorted(items).trisect(index);
-        if (trisection_result[1].length == 1)
-        {
+        if (trisection_result[1].length == 1) {
             *pos = trisection_result[0].length;
             return true;
-        }
-        else if (trisection_result[1].length == 0)
-        {
+        } else if (trisection_result[1].length == 0) {
             return false;
-        }
-        else
-        {
+        } else {
             assert(0, "the constraint of having unique locations has been violated");
         }
     }

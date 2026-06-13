@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: BSL-1.0
+
+module mixed_braces;
+
+enum State
+{
+    idle,
+    running,
+}
+
+struct App
+{
+    void run()
+    {
+        if (State.idle) {
+            foreach (value; [1, 2, 3]) {
+                while (value > 0) {
+                    break;
+                }
+            }
+        } else {
+            return;
+        }
+    }
+}

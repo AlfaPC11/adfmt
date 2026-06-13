@@ -3,6 +3,8 @@
 //    (See accompanying file LICENSE.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
+// SPDX-License-Identifier: BSL-1.0
+
 module dfmt.ast_info;
 
 import dparse.lexer;
@@ -48,6 +50,9 @@ struct ASTInformation
         sort(structInitEndLocations);
         sort(funLitStartLocations);
         sort(funLitEndLocations);
+        sort(aggregateBodyLocations);
+        sort(enumBodyLocations);
+        sort(funBodyLocations);
         sort(conditionalWithElseLocations);
         sort(conditionalStatementLocations);
         sort(arrayStartLocations);
@@ -99,6 +104,8 @@ struct ASTInformation
 
     /// Locations of aggregate bodies (struct, class, union)
     size_t[] aggregateBodyLocations;
+    /// Locations of enum bodies
+    size_t[] enumBodyLocations;
 
     /// Locations of function bodies
     size_t[] funBodyLocations;
@@ -319,6 +326,7 @@ final class FormatVisitor : ASTVisitor
 
     override void visit(const EnumBody enumBody)
     {
+        astInformation.enumBodyLocations ~= enumBody.startLocation;
         astInformation.doubleNewlineLocations ~= enumBody.endLocation;
         enumBody.accept(this);
     }

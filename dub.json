@@ -1,13 +1,20 @@
 {
-    "name": "dfmt",
-    "description": "Dfmt is a formatter for D source code",
-    "targetType": "autodetect",
+    "name": "adfmt",
+    "description": "Alfa's D Formatter",
+    "authors": [
+      "Alfa",
+      "dfmt contributors"
+    ],
+    "copyright": "Copyright © 2015-2026 Brian Schott, dfmt contributors, and Alfa",
+    "homepage": "https://github.com/AlfaPC11/adfmt",
+    "targetType": "executable",
     "license": "BSL-1.0",
     "dependencies": {
+      "dyaml": "~>0.9.2",
       "libdparse": ">=0.19.2 <1.0.0"
     },
     "targetPath" : "bin/",
-    "targetName" : "dfmt",
+    "targetName" : "adfmt",
     "stringImportPaths" : [
       "bin"
     ],

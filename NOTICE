@@ -1,0 +1,10 @@
+SPDX-FileCopyrightText: 2015-2026 Brian Schott and dfmt contributors
+SPDX-FileCopyrightText: 2026 Alfa
+SPDX-License-Identifier: BSL-1.0
+
+adfmt is a fork of dfmt:
+https://github.com/dlang-community/dfmt
+
+The software remains licensed under the Boost Software License 1.0.
+The PATENTS file contains an additional patent grant covering only
+contributions authored by Alfa.

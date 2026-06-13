@@ -2,6 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-License-Identifier: BSL-1.0
 
 module dfmt.main;
 
@@ -39,6 +40,7 @@ version (NoMain)
 else
 {
     import dfmt.config : Config;
+    import dfmt.adfmt_config : getAdfmtConfigFor;
     import dfmt.editorconfig : getConfigFor;
     import dfmt.formatter : format;
     import std.array : appender, front, popFront;
@@ -119,6 +121,8 @@ else
                 "version", &showVersion,
                 "align_switch_statements", &handleBooleans,
                 "brace_style", &optConfig.dfmt_brace_style,
+                "declaration_brace_style", &optConfig.dfmt_declaration_brace_style,
+                "control_brace_style", &optConfig.dfmt_control_brace_style,
                 "config|c", &explicitConfigDir,
                 "end_of_line", &optConfig.end_of_line,
                 "help|h", &showHelp,
@@ -186,6 +190,7 @@ else
         ubyte[] buffer;
 
         Config explicitConfig;
+        Config explicitAdfmtConfig;
         if (explicitConfigDir)
         {
             import std.file : exists, isDir;
@@ -197,6 +202,13 @@ else
             }
             explicitConfig = getConfigFor!Config(explicitConfigDir);
             explicitConfig.pattern = "*.d";
+            try
+                explicitAdfmtConfig = getAdfmtConfigFor(explicitConfigDir, true);
+            catch (Exception e)
+            {
+                stderr.writeln(e.msg);
+                return 1;
+            }
         }
 
         if (readFromStdin)
@@ -210,12 +222,23 @@ else
             if (explicitConfigDir != "")
             {
                 config.merge(explicitConfig, buildPath(explicitConfigDir, "dummy.d"));
+                config.merge(explicitAdfmtConfig, buildPath(explicitConfigDir, "dummy.d"));
             }
             else
             {
                 Config fileConfig = getConfigFor!Config(getcwd());
                 fileConfig.pattern = "*.d";
                 config.merge(fileConfig, cwdDummyPath);
+                try
+                {
+                    Config adfmtConfig = getAdfmtConfigFor(getcwd());
+                    config.merge(adfmtConfig, cwdDummyPath);
+                }
+                catch (Exception e)
+                {
+                    stderr.writeln(e.msg);
+                    return 1;
+                }
             }
             config.merge(optConfig, cwdDummyPath);
             if (!config.isValid())
@@ -229,6 +252,11 @@ else
                     buffer ~= b;
                 else
                     break;
+            }
+            if (config.adfmt_disable_format)
+            {
+                stdout.rawWrite(buffer);
+                return 0;
             }
             immutable bool formatSuccess = format("stdin", buffer,
                 stdout.lockingTextWriter(), &config);
@@ -257,12 +285,23 @@ else
                 if (explicitConfigDir != "")
                 {
                     config.merge(explicitConfig, buildPath(explicitConfigDir, "dummy.d"));
+                    config.merge(explicitAdfmtConfig, buildPath(explicitConfigDir, "dummy.d"));
                 }
                 else
                 {
                     Config fileConfig = getConfigFor!Config(path);
                     fileConfig.pattern = "*.d";
                     config.merge(fileConfig, path);
+                    try
+                    {
+                        Config adfmtConfig = getAdfmtConfigFor(path);
+                        config.merge(adfmtConfig, path);
+                    }
+                    catch (Exception e)
+                    {
+                        stderr.writeln(e.msg);
+                        return 1;
+                    }
                 }
                 config.merge(optConfig, path);
                 if (!config.isValid())
@@ -273,6 +312,12 @@ else
                 {
                     buffer = new ubyte[](cast(size_t) f.size);
                     f.rawRead(buffer);
+                    if (config.adfmt_disable_format)
+                    {
+                        if (!inplace)
+                            stdout.rawWrite(buffer);
+                        continue;
+                    }
                     auto output = appender!string;
                     immutable bool formatSuccess = format(path, buffer, output, &config);
                     if (formatSuccess)
@@ -323,18 +368,23 @@ template optionsToString(E) if (is(E == enum))
 
 private void printHelp()
 {
-    writeln(`dfmt `, VERSION, `
+    writeln(`adfmt `, VERSION, `
+Alfa's D Formatter
 https://github.com/dlang-community/dfmt
 
 Options:
     --help, -h          Print this help message
     --inplace, -i       Edit files in place
-    --config, -c    Path to directory to load .editorconfig file from.
+    --config, -c    Path to directory to load .editorconfig and .adfmt from.
     --version           Print the version number and then exit
 
 Formatting Options:
     --align_switch_statements
     --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style)),
+            `
+    --declaration_brace_style   `, optionsToString!(typeof(Config.dfmt_declaration_brace_style)),
+            `
+    --control_brace_style       `, optionsToString!(typeof(Config.dfmt_control_brace_style)),
             `
     --end_of_line               `, optionsToString!(typeof(Config.end_of_line)), `
     --indent_size

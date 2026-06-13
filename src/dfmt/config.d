@@ -2,6 +2,7 @@
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
+// SPDX-License-Identifier: BSL-1.0
 
 module dfmt.config;
 
@@ -34,9 +35,15 @@ enum TemplateConstraintStyle
 struct Config
 {
     ///
+    OptionalBoolean adfmt_disable_format;
+    ///
     OptionalBoolean dfmt_align_switch_statements;
     ///
     BraceStyle dfmt_brace_style;
+    ///
+    BraceStyle dfmt_declaration_brace_style;
+    ///
+    BraceStyle dfmt_control_brace_style;
     ///
     OptionalBoolean dfmt_outdent_attributes;
     ///
@@ -84,8 +91,11 @@ struct Config
         indent_size = 4;
         tab_width = 4;
         max_line_length = 120;
+        adfmt_disable_format = OptionalBoolean.f;
         dfmt_align_switch_statements = OptionalBoolean.t;
         dfmt_brace_style = BraceStyle.allman;
+        dfmt_declaration_brace_style = BraceStyle._unspecified;
+        dfmt_control_brace_style = BraceStyle._unspecified;
         dfmt_outdent_attributes = OptionalBoolean.t;
         dfmt_soft_max_line_length = 80;
         dfmt_space_after_cast = OptionalBoolean.t;
@@ -101,6 +111,18 @@ struct Config
         dfmt_single_indent = OptionalBoolean.f;
         dfmt_reflow_property_chains = OptionalBoolean.t;
         dfmt_space_before_named_arg_colon = OptionalBoolean.f;
+    }
+
+    BraceStyle declarationBraceStyle() const
+    {
+        return dfmt_declaration_brace_style == BraceStyle._unspecified
+            ? dfmt_brace_style : dfmt_declaration_brace_style;
+    }
+
+    BraceStyle controlBraceStyle() const
+    {
+        return dfmt_control_brace_style == BraceStyle._unspecified
+            ? dfmt_brace_style : dfmt_control_brace_style;
     }
 
     /**

@@ -1,9 +1,12 @@
-# dfmt [![Build Status](https://github.com/dlang-community/dfmt/actions/workflows/d.yml/badge.svg)](https://github.com/dlang-community/dfmt/actions?query=workflow%3A%22D%22)
+# adfmt
 
-**dfmt** is a formatter for D source code
+**adfmt** is Alfa's D Formatter, a fork of **dfmt** with independently
+configurable brace styles for declarations and control-flow blocks.
+
+Upstream project: <https://github.com/dlang-community/dfmt>
 
 ## Status
-**dfmt** is beta quality. Make backups of your files or use source control
+**adfmt** is beta quality. Make backups of your files or use source control
 when using the **--inplace** option.
 
 ## Installation
@@ -11,7 +14,7 @@ when using the **--inplace** option.
 ### Installing with DUB
 
 ```sh
-> dub run dfmt -- -h
+> dub run adfmt -- -h
 ```
 
 ### Building from source using Make
@@ -25,22 +28,26 @@ when using the **--inplace** option.
 * run `dub build --build=release`, optionally with `--compiler=ldc2`
 
 ## Using
-By default, dfmt reads its input from **stdin** and writes to **stdout**.
+By default, adfmt reads its input from **stdin** and writes to **stdout**.
 If a file name is specified on the command line, input will be read from the
 file instead, and output will be written to **stdout**.
 
-**dfmt** uses [EditorConfig](http://editorconfig.org/) files for configuration. If you run **dfmt** on a
-source file it will look for *.editorconfig* files that apply to that source file.
-If no file is specified on the command line, **dfmt** will look for *.editorconfig*
-files that would apply to a D file in the current working directory. Command
-line options can be used instead of *.editorconfig* files, or to override options
-found there.
+**adfmt** uses extensionless `.adfmt` YAML files and
+[EditorConfig](http://editorconfig.org/) files for configuration. If you run **adfmt** on a
+source file it will look for the nearest `.adfmt` and for `.editorconfig` files
+that apply to that source file.
+If no file is specified on the command line, **adfmt** will look for *.editorconfig*
+files that would apply to a D file in the current working directory and for an
+`.adfmt` in that directory or its parents. Precedence is defaults,
+`.editorconfig`, `.adfmt`, then command-line options.
 
 ### Options
 * `--help | -h`: Display command line options.
 * `--inplace | -i`: A file name is required and the file will be edited in-place.
 * `--align_switch_statements`: *see dfmt_align_switch_statements [below](#dfmt-specific-properties)*
 * `--brace_style`: *see dfmt_brace_style [below](#dfmt-specific-properties)*
+* `--declaration_brace_style`: *see dfmt_declaration_brace_style [below](#dfmt-specific-properties)*
+* `--control_brace_style`: *see dfmt_control_brace_style [below](#dfmt-specific-properties)*
 * `--compact_labeled_statements`: *see dfmt_compact_labeled_statements [below](#dfmt-specific-properties)*
 * `--end_of_line`: *see end_of_line [below](#standard-editorconfig-properties)*
 * `--indent_size`: *see indent_size [below](#standard-editorconfig-properties)*
@@ -64,7 +71,7 @@ found there.
 
 ### Example
 ```
-dfmt --inplace --space_after_cast=false --max_line_length=80 \
+adfmt --inplace --space_after_cast=false --max_line_length=80 \
     --soft_max_line_length=70 --brace_style=otbs file.d
 ```
 
@@ -91,7 +98,57 @@ void main(string[] args)
 ```
 
 ## Configuration
-**dfmt** uses [EditorConfig](http://editorconfig.org/) configuration files.
+### .adfmt
+
+`.adfmt` is parsed by D-YAML. Its nested form groups related settings while
+flat clang-format-like aliases are also accepted.
+
+```yaml
+Language: D
+BasedOnStyle: Alfa
+DisableFormat: false
+ColumnLimit: 120
+SoftColumnLimit: 100
+LineEnding: lf
+
+Indent:
+  Width: 4
+  TabWidth: 4
+  Style: space
+  AlignSwitchStatements: true
+  OutdentAttributes: true
+  SingleContinuationIndent: false
+
+Braces:
+  Default: allman
+  Declarations: allman
+  ControlStatements: knr
+
+Spacing:
+  AfterCast: true
+  AfterKeywords: true
+  BeforeFunctionParameters: false
+  SelectiveImports: true
+  BeforeAssociativeArrayColon: false
+  BeforeNamedArgumentColon: false
+
+Wrapping:
+  KeepExistingLineBreaks: false
+  SplitOperatorAtLineEnd: false
+  ReflowPropertyChains: true
+  TemplateConstraints: conditional-newline-indent
+  SingleTemplateConstraintIndent: false
+
+Statements:
+  CompactLabels: true
+```
+
+Unknown keys and invalid values are errors so spelling mistakes cannot silently
+change formatting.
+
+### EditorConfig
+
+**adfmt** also uses [EditorConfig](http://editorconfig.org/) configuration files.
 **dfmt**-specific properties are prefixed with *dfmt_*.
 ### Standard EditorConfig properties
 Property Name | Allowed Values | Description
@@ -108,6 +165,8 @@ max_line_length | positive integers (**`120`**) | [See EditorConfig documentatio
 Property Name | Allowed Values | Description
 --------------|----------------|------------
 dfmt_brace_style | **`allman`**, `otbs`, `stroustrup` or `knr` | [See Wikipedia](https://en.wikipedia.org/wiki/Brace_style)
+dfmt_declaration_brace_style | `allman`, `otbs`, `stroustrup` or `knr` | Override the brace style for function, class, struct, union, and enum bodies.
+dfmt_control_brace_style | `allman`, `otbs`, `stroustrup` or `knr` | Override the brace style for control-flow and other non-declaration blocks.
 dfmt_soft_max_line_length | positive integers (**`80`**) | The formatting process will usually keep lines below this length, but they may be up to *max_line_length* columns long.
 dfmt_align_switch_statements | **`true`**, `false` | Align labels, cases, and defaults with their enclosing switch.
 dfmt_outdent_attributes (Not yet implemented) | **`true`**, `false`| Decrease the indentation level of attributes.
@@ -130,3 +189,13 @@ dfmt_space_after_keywords | **`true`**, `false` | Insert space after keywords (i
 * Braces - `{` and `}`
 * Brackets - `[` and `]`
 * Parenthesis / Parens  - `(` and `)`
+
+## License and patents
+
+adfmt follows upstream dfmt and is licensed under the
+[Boost Software License 1.0](LICENSE.txt), SPDX identifier `BSL-1.0`.
+
+The [PATENTS](PATENTS) file grants patent rights only for contributions
+authored by Alfa. It does not claim or grant patent rights belonging to
+upstream dfmt contributors or other third parties. Attribution and fork
+provenance are recorded in [NOTICE](NOTICE).

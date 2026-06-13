@@ -12,10 +12,20 @@ struct AdfmtYamlDocument
 AdfmtYamlDocument parseAdfmtYaml(string path)
 {
     import std.file : readText;
+    import std.format : format;
+
+    Node root;
+    try
+    {
+        const yaml = prepareAdfmtYaml(readText(path));
+        root = Loader.fromString(yaml).load();
+    }
+    catch (Exception error)
+    {
+        throw new Exception(format("%s: invalid .adfmt YAML: %s", path, error.msg));
+    }
 
     AdfmtYamlDocument result;
-    const yaml = prepareAdfmtYaml(readText(path));
-    const root = Loader.fromString(yaml).load();
     flattenMapping(root, "", result);
     return result;
 }
@@ -45,6 +55,8 @@ private void flattenMapping(const Node node, string prefix, ref AdfmtYamlDocumen
 
         enforce(valueNode.nodeID == NodeID.scalar,
             "Sequences are not supported for .adfmt option " ~ fullKey);
+        enforce((fullKey in result.values) is null,
+            "Duplicate .adfmt option " ~ fullKey);
 
         final switch (valueNode.type)
         {

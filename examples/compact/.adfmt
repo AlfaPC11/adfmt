@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: BSL-1.0
+
+Language: D
+BasedOnStyle: dfmt
+
+ColumnLimit: 100
+SoftColumnLimit: 80
+
+Indent:
+  Width: 2
+  TabWidth: 2
+
+Braces:
+  Default: otbs

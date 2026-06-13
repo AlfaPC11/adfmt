@@ -72,9 +72,6 @@ struct Config
     OptionalBoolean dfmt_single_indent;
     ///
     OptionalBoolean dfmt_reflow_property_chains;
-    ///
-    OptionalBoolean dfmt_space_after_statement_keyword;
-    ///
     OptionalBoolean dfmt_space_before_named_arg_colon;
 
     mixin StandardEditorConfigFields;
@@ -133,12 +130,32 @@ struct Config
     {
         import std.stdio : stderr;
 
-        if (dfmt_soft_max_line_length > max_line_length)
+        const error = validationError();
+        if (error.length != 0)
         {
-            stderr.writefln("Column hard limit (%d) must be greater than or equal to column soft limit (%d)",
-                    max_line_length, dfmt_soft_max_line_length);
+            stderr.writeln(error);
             return false;
         }
         return true;
+    }
+
+    string validationError() const
+    {
+        import std.format : format;
+
+        if (indent_size <= 0)
+            return format("Indent width must be greater than zero (got %d)", indent_size);
+        if (tab_width <= 0)
+            return format("Tab width must be greater than zero (got %d)", tab_width);
+        if (max_line_length <= 0)
+            return format("Column limit must be greater than zero (got %d)", max_line_length);
+        if (dfmt_soft_max_line_length <= 0)
+            return format("Soft column limit must be greater than zero (got %d)",
+                dfmt_soft_max_line_length);
+        if (dfmt_soft_max_line_length > max_line_length)
+            return format(
+                "Column limit (%d) must be greater than or equal to soft column limit (%d)",
+                max_line_length, dfmt_soft_max_line_length);
+        return null;
     }
 }

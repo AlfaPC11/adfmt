@@ -5,6 +5,30 @@ configurable brace styles for declarations and control-flow blocks.
 
 Upstream project: <https://github.com/dlang-community/dfmt>
 
+## Why adfmt?
+
+adfmt keeps dfmt's D-aware formatting engine while adding a project-local,
+extensionless YAML configuration file. It is useful when one brace style is
+not enough: declarations can use Allman braces while control-flow statements
+continue to use K&R braces. Configuration mistakes fail loudly instead of
+being silently ignored, and the same `.adfmt` file works from the command line
+and the adfmt VS Code extension.
+
+## adfmt and dfmt
+
+| Capability | dfmt | adfmt |
+|------------|------|-------|
+| D-aware formatting | Yes | Yes, inherited from dfmt |
+| EditorConfig | Yes | Yes |
+| Extensionless YAML config | No | Yes, `.adfmt` |
+| Separate declaration/control braces | No | Yes |
+| Built-in styles | No | `Alfa`, `dfmt` |
+| Unknown-key validation | No | Yes |
+| Disable an entire project config | No | `DisableFormat` |
+
+adfmt remains source-derived from dfmt. It is not a rewrite and deliberately
+keeps dfmt-compatible command-line and EditorConfig options where possible.
+
 ## Status
 **adfmt** is beta quality. Make backups of your files or use source control
 when using the **--inplace** option.
@@ -19,9 +43,10 @@ when using the **--inplace** option.
 
 ### Building from source using Make
 * Clone the repository
-* Run ```git submodule update --init --recursive``` in the dfmt directory
-* To compile with DMD, run ```make``` in the dfmt directory. To compile with
-  LDC, run ```make ldc``` instead. The generated binary will be placed in ```dfmt/bin/```.
+* Run ```git submodule update --init --recursive``` in the adfmt directory
+* To compile with DMD, run ```make``` in the adfmt directory. To compile with
+  LDC, run ```make ldc``` instead. The generated binary will be placed in
+  ```adfmt/bin/```.
 
 ### Building from source using dub
 * Clone the repository
@@ -103,6 +128,11 @@ void main(string[] args)
 `.adfmt` is parsed by D-YAML. Its nested form groups related settings while
 flat clang-format-like aliases are also accepted.
 
+The complete option reference is in
+[docs/configuration.md](docs/configuration.md). Ready-to-use profiles are in
+[examples](examples), and existing dfmt users can follow the
+[migration guide](docs/migration-from-dfmt.md).
+
 ```yaml
 Language: D
 BasedOnStyle: Alfa
@@ -143,8 +173,10 @@ Statements:
   CompactLabels: true
 ```
 
-Unknown keys and invalid values are errors so spelling mistakes cannot silently
-change formatting.
+`BasedOnStyle` is applied first regardless of its position in the YAML file.
+Later options override the selected style. Unknown keys, duplicate aliases, and
+invalid values are errors so spelling mistakes cannot silently change
+formatting.
 
 ### EditorConfig
 
@@ -172,7 +204,7 @@ dfmt_align_switch_statements | **`true`**, `false` | Align labels, cases, and de
 dfmt_outdent_attributes (Not yet implemented) | **`true`**, `false`| Decrease the indentation level of attributes.
 dfmt_split_operator_at_line_end | `true`, **`false`** | Place operators on the end of the previous line when splitting lines.
 dfmt_space_after_cast | **`true`**, `false` | Insert space after the closing paren of a `cast` expression.
-dfmt_space_after_keywords (Not yet implemented) | **`true`**, `false` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`.
+dfmt_space_after_keywords | **`true`**, `false` | Insert space after `if`, `while`, `foreach`, etc, and before the `(`.
 dfmt_space_before_function_parameters | `true`, **`false`** | Insert space before the opening paren of a function parameter list.
 dfmt_selective_import_space | **`true`**, `false` | Insert space after the module name and before the `:` for selective imports.
 dfmt_compact_labeled_statements | **`true`**, `false` | Place labels on the same line as the labeled `switch`, `for`, `foreach`, or `while` statement.
@@ -183,7 +215,6 @@ dfmt_space_before_named_arg_colon | `true`, **`false`** | Adds a space after a n
 dfmt_keep_line_breaks | `true`, **`false`** | Keep existing line breaks if these don't violate other formatting rules.
 dfmt_single_indent | `true`, **`false`** | Set if the code in parens is indented by a single tab instead of two.
 dfmt_reflow_property_chains | **`true`**, `false` | Recalculate the splitting of property chains into multiple lines.
-dfmt_space_after_keywords | **`true`**, `false` | Insert space after keywords (if,while,foreach,for, etc.).
 
 ## Terminology
 * Braces - `{` and `}`

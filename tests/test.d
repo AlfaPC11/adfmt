@@ -8,9 +8,9 @@ import std.algorithm, std.array, std.conv, std.file, std.path, std.process;
 import std.stdio, std.string, std.typecons, std.range, std.uni;
 
 version (Windows)
-    enum dfmt = `..\bin\dfmt.exe`;
+    enum adfmt = `..\bin\adfmt.exe`;
 else
-    enum dfmt = `../bin/dfmt`;
+    enum adfmt = `../bin/adfmt`;
 
 int main()
 {
@@ -18,20 +18,33 @@ int main()
         foreach (entry; dirEntries(".", "*.d", SpanMode.shallow).filter!(e => e.baseName(".d") != "test"))
         {
             const source = entry.baseName;
+            if (source == "mixed_braces.d")
+                continue;
             const outFileName = buildPath(braceStyle, source ~ ".out");
             const refFileName = buildPath(braceStyle, source ~ ".ref");
             const argsFile = source.stripExtension ~ ".args";
-            const dfmtCommand = 
-                [dfmt, "--brace_style=" ~ braceStyle] ~ 
+            const adfmtCommand =
+                [adfmt, "--config=.", "--brace_style=" ~ braceStyle] ~
                 (argsFile.exists ? readText(argsFile).split : []) ~
                 [source];
-            writeln(dfmtCommand.join(" "));
-            if (const result = spawnProcess(dfmtCommand, stdin, File(outFileName, "w")).wait)
+            writeln(adfmtCommand.join(" "));
+            if (const result = spawnProcess(adfmtCommand, stdin, File(outFileName, "w")).wait)
                 return result;
 
             if (int ret = diff(refFileName, outFileName))
                 return ret;
         }
+
+    const mixedOutput = "mixed_braces.d.out";
+    scope (exit)
+        if (mixedOutput.exists)
+            remove(mixedOutput);
+    const mixedCommand = [adfmt, "--config=..", "mixed_braces.d"];
+    writeln(mixedCommand.join(" "));
+    if (const result = spawnProcess(mixedCommand, stdin, File(mixedOutput, "w")).wait)
+        return result;
+    if (int ret = diff("mixed_braces.d.ref", mixedOutput))
+        return ret;
 
     foreach (entry; dirEntries("expected_failures", "*.d", SpanMode.shallow))
     {
@@ -39,7 +52,7 @@ int main()
         copy(entry, copied);
         scope (exit)
             remove(copied);
-        if (execute([dfmt, copied, "--inplace"]).status == 0)
+        if (execute([adfmt, "--config=.", copied, "--inplace"]).status == 0)
         {
             stderr.writeln("Expected failure on test ", entry, " but passed.");
             return 1;

@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: BSL-1.0
+
+Language: D
+BasedOnStyle: Alfa
+
+Braces:
+  Default: allman
+  Declarations: allman
+  ControlStatements: allman

@@ -20,43 +20,43 @@ override GDC_FLAGS += $(DFLAGS)
 
 .PHONY: all clean install debug dmd ldc gdc pkg release test
 
-all: bin/dfmt
+all: bin/adfmt
 
 bin/githash.txt:
 	mkdir -p bin
 	git describe --tags > bin/githash.txt
 
-dmd: bin/dfmt
+dmd: bin/adfmt
 
 ldc: bin/githash.txt
-	$(LDC) $(SRC) $(LDC_FLAGS) -ofbin/dfmt
+	$(LDC) $(SRC) $(LDC_FLAGS) -ofbin/adfmt
 	-rm -f *.o
 
 gdc: bin/githash.txt
-	$(GDC) $(SRC) $(GDC_FLAGS) -obin/dfmt
+	$(GDC) $(SRC) $(GDC_FLAGS) -obin/adfmt
 
 test: debug
 	cd tests && ./test.d
 
-bin/dfmt-test: bin/githash.txt $(SRC)
+bin/adfmt-test: bin/githash.txt $(SRC)
 	$(DC) $(DMD_TEST_FLAGS) $(filter %.d,$^) -of$@
 
-bin/dfmt: bin/githash.txt $(SRC)
+bin/adfmt: bin/githash.txt $(SRC)
 	$(DC) $(DMD_FLAGS) $(filter %.d,$^) -of$@
 
 debug: bin/githash.txt $(SRC)
-	$(DC) $(DMD_DEBUG_FLAGS) $(filter %.d,$^) -ofbin/dfmt
+	$(DC) $(DMD_DEBUG_FLAGS) $(filter %.d,$^) -ofbin/adfmt
 
 pkg: dmd
 	$(MAKE) -f makd/Makd.mak pkg
 
 clean:
-	$(RM) bin/dfmt bin/dfmt-test bin/githash.txt
+	$(RM) bin/adfmt bin/adfmt-test bin/githash.txt
 
 install:
-	chmod +x bin/dfmt
+	chmod +x bin/adfmt
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp -f bin/dfmt $(DESTDIR)$(PREFIX)/bin/dfmt
+	cp -f bin/adfmt $(DESTDIR)$(PREFIX)/bin/adfmt
 
 release:
 	./release.sh

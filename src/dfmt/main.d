@@ -132,7 +132,10 @@ else
                 "align_switch_statements", &handleBooleans,
                 "brace_style", &optConfig.dfmt_brace_style,
                 "declaration_brace_style", &optConfig.dfmt_declaration_brace_style,
+                "aggregate_brace_style", &optConfig.adfmt_aggregate_brace_style,
+                "enum_brace_style", &optConfig.adfmt_enum_brace_style,
                 "function_brace_style", &optConfig.dfmt_function_brace_style,
+                "function_literal_brace_style", &optConfig.adfmt_function_literal_brace_style,
                 "control_brace_style", &optConfig.dfmt_control_brace_style,
                 "config|c", &explicitConfigDir,
                 "end_of_line", &optConfig.end_of_line,
@@ -401,7 +404,14 @@ Formatting Options:
             `
     --declaration_brace_style   `, optionsToString!(typeof(Config.dfmt_declaration_brace_style)),
             `
+    --aggregate_brace_style     `, optionsToString!(typeof(Config.adfmt_aggregate_brace_style)),
+            `
+    --enum_brace_style          `, optionsToString!(typeof(Config.adfmt_enum_brace_style)),
+            `
     --function_brace_style      `, optionsToString!(typeof(Config.dfmt_function_brace_style)),
+            `
+    --function_literal_brace_style
+                                `, optionsToString!(typeof(Config.adfmt_function_literal_brace_style)),
             `
     --control_brace_style       `, optionsToString!(typeof(Config.dfmt_control_brace_style)),
             `

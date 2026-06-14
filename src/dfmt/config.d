@@ -43,7 +43,13 @@ struct Config
     ///
     BraceStyle dfmt_declaration_brace_style;
     ///
+    BraceStyle adfmt_aggregate_brace_style;
+    ///
+    BraceStyle adfmt_enum_brace_style;
+    ///
     BraceStyle dfmt_function_brace_style;
+    ///
+    BraceStyle adfmt_function_literal_brace_style;
     ///
     BraceStyle dfmt_control_brace_style;
     ///
@@ -105,7 +111,10 @@ struct Config
         dfmt_align_switch_statements = OptionalBoolean.t;
         dfmt_brace_style = BraceStyle.allman;
         dfmt_declaration_brace_style = BraceStyle._unspecified;
+        adfmt_aggregate_brace_style = BraceStyle._unspecified;
+        adfmt_enum_brace_style = BraceStyle._unspecified;
         dfmt_function_brace_style = BraceStyle._unspecified;
+        adfmt_function_literal_brace_style = BraceStyle._unspecified;
         dfmt_control_brace_style = BraceStyle._unspecified;
         dfmt_outdent_attributes = OptionalBoolean.t;
         dfmt_soft_max_line_length = 80;
@@ -145,6 +154,24 @@ struct Config
     {
         return dfmt_function_brace_style == BraceStyle._unspecified
             ? declarationBraceStyle() : dfmt_function_brace_style;
+    }
+
+    BraceStyle aggregateBraceStyle() const
+    {
+        return adfmt_aggregate_brace_style == BraceStyle._unspecified
+            ? declarationBraceStyle() : adfmt_aggregate_brace_style;
+    }
+
+    BraceStyle enumBraceStyle() const
+    {
+        return adfmt_enum_brace_style == BraceStyle._unspecified
+            ? declarationBraceStyle() : adfmt_enum_brace_style;
+    }
+
+    BraceStyle functionLiteralBraceStyle() const
+    {
+        return adfmt_function_literal_brace_style == BraceStyle._unspecified
+            ? BraceStyle.knr : adfmt_function_literal_brace_style;
     }
 
     /**

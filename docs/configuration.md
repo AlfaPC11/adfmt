@@ -24,9 +24,11 @@ applied. Its position in the YAML document does not affect precedence.
 
 ### Alfa
 
-The `Alfa` profile uses 4-space indentation, a 120-column hard limit, a
-100-column soft limit, LF line endings, Allman declaration braces, and K&R
-control-flow braces.
+The `Alfa` profile uses 2-space block indentation, 4-space continuation
+indentation, a 120-column hard limit, a 100-column soft limit, LF line endings,
+Allman aggregate/enum/function braces, and K&R
+function-literal/control-flow braces. Binary operators remain at the end of a
+broken line and casts do not receive a trailing space.
 
 ```yaml
 BasedOnStyle: Alfa
@@ -61,9 +63,9 @@ written in `.adfmt` override lower-precedence EditorConfig values.
 | `ColumnLimit` | - | positive integer | `120` |
 | `SoftColumnLimit` | - | positive integer, at most `ColumnLimit` | `100` |
 | `LineEnding` | - | `default`, `lf`, `cr`, `crlf` | `lf` |
-| `Indent.Width` | `IndentWidth` | positive integer | `4` |
+| `Indent.Width` | `IndentWidth` | positive integer | `2` |
 | `Indent.ContinuationWidth` | `ContinuationIndentWidth` | positive integer | `4` |
-| `Indent.TabWidth` | `TabWidth` | positive integer | `4` |
+| `Indent.TabWidth` | `TabWidth` | positive integer | `2` |
 | `Indent.Style` | `UseTab` | `space`, `tab`, `never`, `always` | `space` |
 | `Indent.AlignSwitchStatements` | `AlignSwitchStatements` | boolean | `true` |
 | `Indent.CaseLabels` | `IndentCaseLabels` | boolean | `false` |
@@ -71,9 +73,12 @@ written in `.adfmt` override lower-precedence EditorConfig values.
 | `Indent.SingleContinuationIndent` | `SingleIndent` | boolean | `false` |
 | `Braces.Default` | `BraceStyle` | `allman`, `otbs`, `stroustrup`, `knr` | `allman` |
 | `Braces.Declarations` | `DeclarationBraceStyle` | brace style | `allman` |
+| `Braces.Aggregates` | `AggregateBraceStyle` | brace style | `allman` |
+| `Braces.Enums` | `EnumBraceStyle` | brace style | `allman` |
 | `Braces.Functions` | `FunctionBraceStyle` | brace style | inherits declarations |
+| `Braces.FunctionLiterals` | `FunctionLiteralBraceStyle` | brace style | `knr` |
 | `Braces.ControlStatements` | `ControlBraceStyle` | brace style | `knr` |
-| `Spacing.AfterCast` | `SpaceAfterCast` | boolean | `true` |
+| `Spacing.AfterCast` | `SpaceAfterCast` | boolean | `false` |
 | `Spacing.AfterKeywords` | `SpaceAfterKeywords` | boolean | `true` |
 | `Spacing.BeforeFunctionParameters` | `SpaceBeforeFunctionParameters` | boolean | `false` |
 | `Spacing.SelectiveImports` | `SelectiveImportSpace` | boolean | `true` |
@@ -82,7 +87,8 @@ written in `.adfmt` override lower-precedence EditorConfig values.
 | `Spacing.BeforeBraces` | `SpaceBeforeBraces` | boolean | `true` |
 | `Spacing.AroundBinaryOperators` | `SpaceAroundBinaryOperators` | boolean | `true` |
 | `Wrapping.KeepExistingLineBreaks` | `KeepLineBreaks` | boolean | `false` |
-| `Wrapping.SplitOperatorAtLineEnd` | `SplitOperatorAtLineEnd` | boolean | `false` |
+| `Wrapping.BinaryOperators` | `BinaryOperatorBreakStyle` | `before`, `after` | `after` |
+| `Wrapping.SplitOperatorAtLineEnd` | `SplitOperatorAtLineEnd` | boolean | `true` |
 | `Wrapping.ReflowPropertyChains` | `ReflowPropertyChains` | boolean | `true` |
 | `Wrapping.TemplateConstraints` | `TemplateConstraintStyle` | see below | `conditional-newline-indent` |
 | `Wrapping.SingleTemplateConstraintIndent` | `SingleTemplateConstraintIndent` | boolean | `false` |
@@ -116,9 +122,9 @@ SoftColumnLimit: 100
 LineEnding: lf
 
 Indent:
-  Width: 4
+  Width: 2
   ContinuationWidth: 4
-  TabWidth: 4
+  TabWidth: 2
   Style: space
   CaseLabels: false
   OutdentAttributes: true
@@ -127,11 +133,14 @@ Indent:
 Braces:
   Default: allman
   Declarations: allman
+  Aggregates: allman
+  Enums: allman
   Functions: allman
+  FunctionLiterals: knr
   ControlStatements: knr
 
 Spacing:
-  AfterCast: true
+  AfterCast: false
   AfterKeywords: true
   BeforeFunctionParameters: false
   SelectiveImports: true
@@ -142,7 +151,7 @@ Spacing:
 
 Wrapping:
   KeepExistingLineBreaks: false
-  SplitOperatorAtLineEnd: false
+  BinaryOperators: after
   ReflowPropertyChains: true
   TemplateConstraints: conditional-newline-indent
   SingleTemplateConstraintIndent: false
@@ -170,6 +179,9 @@ Errors include the `.adfmt` path and the option that caused the failure.
 ## Behavioral notes
 
 - `Braces.Functions` overrides `Braces.Declarations` only for function bodies.
+- `Braces.Aggregates` and `Braces.Enums` fall back to `Braces.Declarations`.
+  Function literals preserve dfmt's K&R behavior unless
+  `Braces.FunctionLiterals` or a complete built-in profile selects otherwise.
 - `Indent.CaseLabels: true` is the readable inverse of the legacy
   `AlignSwitchStatements` option. Do not specify both in one file.
 - `Indent.ContinuationWidth` controls wrapping indentation independently from
@@ -177,5 +189,8 @@ Errors include the `.adfmt` path and the option that caused the failure.
 - A lower `Wrapping.NewlinePenalty` makes line breaks cheaper.
 - A higher `Wrapping.LongLinePenalty` makes text beyond `SoftColumnLimit` more
   expensive.
+- `Wrapping.BinaryOperators` is the readable form of the inherited
+  `SplitOperatorAtLineEnd` behavior. `after` keeps an operator on the preceding
+  line; `before` starts the continuation line with it.
 - `Spacing.BeforeBraces: false` affects same-line braces only. Allman braces
   remain on their own line.

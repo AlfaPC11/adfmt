@@ -4,22 +4,22 @@ module mixed_braces;
 
 enum State
 {
-    idle,
-    running,
+  idle,
+  running,
 }
 
 struct App
 {
-    void run()
-    {
-        if (State.idle) {
-            foreach (value; [1, 2, 3]) {
-                while (value > 0) {
-                    break;
-                }
-            }
-        } else {
-            return;
+  void run()
+  {
+    if (State.idle) {
+      foreach (value; [1, 2, 3]) {
+        while (value > 0) {
+          break;
         }
+      }
+    } else {
+      return;
     }
+  }
 }

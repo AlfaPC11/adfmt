@@ -1,71 +1,117 @@
 # SPDX-License-Identifier: BSL-1.0
 
-# Completion for adfmt
 _adfmt()
 {
-	local cur prev opts
+	local cur prev value_prefix option
+	local -a options
+
 	COMPREPLY=()
-	cur="${COMP_WORDS[COMP_CWORD]}"
-	prev="${COMP_WORDS[COMP_CWORD-1]}"
+	cur=${COMP_WORDS[COMP_CWORD]}
+	prev=${COMP_WORDS[COMP_CWORD - 1]}
 
-	booleans="--align_switch_statements --outdent_attributes --space_after_cast\
-		--space_before_function_parameters --selective_import_space\
-		--split_operator_at_line_end --compact_labeled_statements\
-		--indent_case_labels --space_before_braces --space_around_binary_operators"
+	options=(
+		--help -h
+		--version
+		--inplace -i
+		--config -c
+		--align_switch_statements
+		--brace_style
+		--declaration_brace_style
+		--aggregate_brace_style
+		--enum_brace_style
+		--function_brace_style
+		--function_literal_brace_style
+		--control_brace_style
+		--end_of_line
+		--indent_size
+		--continuation_indent_width
+		--indent_style -t
+		--indent_case_labels
+		--keep_line_breaks
+		--max_line_length
+		--soft_max_line_length
+		--tab_width
+		--outdent_attributes
+		--space_after_cast
+		--space_after_keywords
+		--space_before_braces
+		--space_around_binary_operators
+		--space_before_function_parameters
+		--selective_import_space
+		--single_template_constraint_indent
+		--split_operator_at_line_end
+		--compact_labeled_statements
+		--template_constraint_style
+		--space_before_aa_colon
+		--space_before_named_arg_colon
+		--single_indent
+		--reflow_property_chains
+		--wrapping_newline_penalty
+		--wrapping_long_line_penalty
+	)
 
-	# Uncomment code below to print the list of boolean options incase you edit it
-	# and replace it in the case below
-	#
-	#booleans=${booleans//		/	}
-	#booleans=${booleans//	/ }
-	#bared_booleans=\"${booleans// /\"|\"}\"
-	#echo ${bared_booleans}
+	_adfmt_complete_values()
+	{
+		local selected=$1
+		local word=$2
+		local values=
 
-	opts="--help -h --inplace -i --version --brace_style --declaration_brace_style --function_brace_style\
-		--control_brace_style --end_of_line --indent_size --continuation_indent_width\
-		--indent_style -t --soft_max_line_length --max_line_length ${booleans}\
-		--template_constraint_style --wrapping_newline_penalty --wrapping_long_line_penalty"
+		case $selected in
+			--brace_style|--declaration_brace_style|--aggregate_brace_style|--enum_brace_style|--function_brace_style|--function_literal_brace_style|--control_brace_style)
+				values="allman otbs stroustrup knr"
+				;;
+			--end_of_line)
+				values="default lf cr crlf"
+				;;
+			--indent_style|-t)
+				values="space tab"
+				;;
+			--template_constraint_style)
+				values="conditional_newline_indent conditional_newline always_newline always_newline_indent"
+				;;
+			--align_switch_statements|--indent_case_labels|--keep_line_breaks|--outdent_attributes|--space_after_cast|--space_after_keywords|--space_before_braces|--space_around_binary_operators|--space_before_function_parameters|--selective_import_space|--single_template_constraint_indent|--split_operator_at_line_end|--compact_labeled_statements|--space_before_aa_colon|--space_before_named_arg_colon|--single_indent|--reflow_property_chains)
+				values="true false"
+				;;
+			*)
+				return 1
+				;;
+		esac
 
-	eolOpts="lf cr crlf"
-	boolOpts="true false"
-	braceOpts="allman otbs stroustrup knr"
-	indentOpts="tab space"
-	constraintOpts="conditional_newline_indent conditional_newline always_newline always_newline_indent"
+		COMPREPLY=( $(compgen -W "$values" -- "$word") )
+		return 0
+	}
 
-	if [[ ${cur} == -* ]]; then
-		COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
-		return 0;
+	if [[ $cur == --*=* ]]; then
+		option=${cur%%=*}
+		value_prefix=${cur#*=}
+		if [[ $option == --config ]]; then
+			COMPREPLY=( $(compgen -d -- "$value_prefix") )
+			COMPREPLY=( "${COMPREPLY[@]/#/$option=}" )
+			return 0
+		fi
+		if _adfmt_complete_values "$option" "$value_prefix"; then
+			COMPREPLY=( "${COMPREPLY[@]/#/$option=}" )
+			return 0
+		fi
 	fi
 
+	if _adfmt_complete_values "$prev" "$cur"; then
+		return 0
+	fi
 
-	case "${prev}" in
-		"--brace_style"|"--declaration_brace_style"|"--function_brace_style"|"--control_brace_style")
-			COMPREPLY=($(compgen -W "${braceOpts}" -- ${cur}))
-			return 0
-			;;
-		"--end_of_line")
-			COMPREPLY=($(compgen -W "${eolOpts}" -- ${cur}))
-			return 0
-			;;
-		"-t")
-			;&
-		"--indent_style")
-			COMPREPLY=($(compgen -W "${indentOpts}" -- ${cur}))
-			return 0
-			;;
-		"--template_constraint_style")
-			COMPREPLY=($(compgen -W "${constraintOpts}" -- ${cur}))
-			return 0
-			;;
-		"--align_switch_statements"|"--outdent_attributes"|"--space_after_cast"|"--space_before_function_parameters"|"--selective_import_space"|"--split_operator_at_line_end"|"--compact_labeled_statements"|"--indent_case_labels"|"--space_before_braces"|"--space_around_binary_operators")
-			COMPREPLY=($(compgen -W "${boolOpts}" -- ${cur}))
-			return 0
-			;;
-		*)
-			COMPREPLY=($(compgen -f -- ${cur}))
+	case $prev in
+		--config|-c)
+			_filedir -d
 			return 0
 			;;
 	esac
-	COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
+
+	if [[ $cur == -* ]]; then
+		COMPREPLY=( $(compgen -W "${options[*]}" -- "$cur") )
+		return 0
+	fi
+
+	_filedir '@(d|D)'
 }
-complete -F _adfmt adfmt
+
+complete -o filenames -F _adfmt adfmt

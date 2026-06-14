@@ -11,7 +11,7 @@ priority: optional
 maintainer: Alfa <AlfaPC11@users.noreply.github.com>
 description: |
   Alfa's D Formatter is a dfmt fork with extensionless YAML configuration
-  and independent brace styles for declarations and control-flow statements.
+  and independent D-aware formatting categories.
 vendor: Alfa
 homepage: https://github.com/AlfaPC11/adfmt
 license: BSL-1.0
@@ -29,6 +29,10 @@ contents:
     dst: /usr/share/licenses/adfmt/NOTICE
   - src: ./README.md
     dst: /usr/share/doc/adfmt/README.md
+  - src: ./DIFFERENCES.md
+    dst: /usr/share/doc/adfmt/DIFFERENCES.md
+  - src: ./HISTORY.md
+    dst: /usr/share/doc/adfmt/HISTORY.md
   - src: ./docs
     dst: /usr/share/doc/adfmt/docs
     type: tree

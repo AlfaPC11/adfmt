@@ -202,10 +202,25 @@ Config parseAdfmtConfig(string path)
             markConfigured("Braces.Declarations", key);
             result.dfmt_declaration_brace_style = braceValue(key, value);
             break;
+        case "AggregateBraceStyle":
+        case "Braces.Aggregates":
+            markConfigured("Braces.Aggregates", key);
+            result.adfmt_aggregate_brace_style = braceValue(key, value);
+            break;
+        case "EnumBraceStyle":
+        case "Braces.Enums":
+            markConfigured("Braces.Enums", key);
+            result.adfmt_enum_brace_style = braceValue(key, value);
+            break;
         case "FunctionBraceStyle":
         case "Braces.Functions":
             markConfigured("Braces.Functions", key);
             result.dfmt_function_brace_style = braceValue(key, value);
+            break;
+        case "FunctionLiteralBraceStyle":
+        case "Braces.FunctionLiterals":
+            markConfigured("Braces.FunctionLiterals", key);
+            result.adfmt_function_literal_brace_style = braceValue(key, value);
             break;
         case "ControlBraceStyle":
         case "Braces.ControlStatements":
@@ -261,6 +276,16 @@ Config parseAdfmtConfig(string path)
         case "Wrapping.SplitOperatorAtLineEnd":
             markConfigured("Wrapping.SplitOperatorAtLineEnd", key);
             result.dfmt_split_operator_at_line_end = booleanValue(key, value);
+            break;
+        case "BinaryOperatorBreakStyle":
+        case "Wrapping.BinaryOperators":
+            markConfigured("Wrapping.SplitOperatorAtLineEnd", key);
+            const normalized = value.toLower;
+            enforce(normalized == "before" || normalized == "after",
+                format("%s: invalid value '%s' for %s; expected before or after",
+                    path, value, key));
+            result.dfmt_split_operator_at_line_end =
+                normalized == "after" ? OptionalBoolean.t : OptionalBoolean.f;
             break;
         case "ReflowPropertyChains":
         case "Wrapping.ReflowPropertyChains":
@@ -325,15 +350,26 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
     if (normalized == "alfa")
     {
         config.end_of_line = EOL.lf;
+        config.indent_size = 2;
+        config.tab_width = 2;
+        config.adfmt_continuation_indent_width = 4;
         config.dfmt_soft_max_line_length = 100;
         config.dfmt_declaration_brace_style = BraceStyle.allman;
+        config.adfmt_aggregate_brace_style = BraceStyle.allman;
+        config.adfmt_enum_brace_style = BraceStyle.allman;
+        config.dfmt_function_brace_style = BraceStyle.allman;
+        config.adfmt_function_literal_brace_style = BraceStyle.knr;
         config.dfmt_control_brace_style = BraceStyle.knr;
+        config.dfmt_space_after_cast = OptionalBoolean.f;
+        config.dfmt_align_switch_statements = OptionalBoolean.t;
+        config.dfmt_split_operator_at_line_end = OptionalBoolean.t;
     }
     else if (normalized == "allman")
     {
         config.dfmt_brace_style = BraceStyle.allman;
         config.dfmt_declaration_brace_style = BraceStyle.allman;
         config.dfmt_function_brace_style = BraceStyle.allman;
+        config.adfmt_function_literal_brace_style = BraceStyle.allman;
         config.dfmt_control_brace_style = BraceStyle.allman;
     }
     else if (normalized == "k&r" || normalized == "knr")
@@ -341,6 +377,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.dfmt_brace_style = BraceStyle.knr;
         config.dfmt_declaration_brace_style = BraceStyle.knr;
         config.dfmt_function_brace_style = BraceStyle.knr;
+        config.adfmt_function_literal_brace_style = BraceStyle.knr;
         config.dfmt_control_brace_style = BraceStyle.knr;
     }
     else if (normalized == "stroustrup")
@@ -348,6 +385,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.dfmt_brace_style = BraceStyle.stroustrup;
         config.dfmt_declaration_brace_style = BraceStyle.stroustrup;
         config.dfmt_function_brace_style = BraceStyle.stroustrup;
+        config.adfmt_function_literal_brace_style = BraceStyle.stroustrup;
         config.dfmt_control_brace_style = BraceStyle.stroustrup;
     }
     else if (normalized == "otbs")
@@ -355,6 +393,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.dfmt_brace_style = BraceStyle.otbs;
         config.dfmt_declaration_brace_style = BraceStyle.otbs;
         config.dfmt_function_brace_style = BraceStyle.otbs;
+        config.adfmt_function_literal_brace_style = BraceStyle.otbs;
         config.dfmt_control_brace_style = BraceStyle.otbs;
     }
     else if (normalized == "linux")
@@ -362,6 +401,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.dfmt_brace_style = BraceStyle.knr;
         config.dfmt_declaration_brace_style = BraceStyle.allman;
         config.dfmt_function_brace_style = BraceStyle.knr;
+        config.adfmt_function_literal_brace_style = BraceStyle.knr;
         config.dfmt_control_brace_style = BraceStyle.knr;
         config.indent_size = 8;
         config.tab_width = 8;
@@ -373,6 +413,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.dfmt_brace_style = BraceStyle.otbs;
         config.dfmt_declaration_brace_style = BraceStyle.otbs;
         config.dfmt_function_brace_style = BraceStyle.otbs;
+        config.adfmt_function_literal_brace_style = BraceStyle.otbs;
         config.dfmt_control_brace_style = BraceStyle.otbs;
         config.indent_size = 2;
         config.tab_width = 2;
@@ -412,7 +453,10 @@ OutdentAttributes: false
 SingleIndent: true
 BraceStyle: otbs
 DeclarationBraceStyle: allman
+AggregateBraceStyle: knr
+EnumBraceStyle: otbs
 FunctionBraceStyle: stroustrup
+FunctionLiteralBraceStyle: allman
 ControlBraceStyle: knr
 SpaceAfterCast: false
 SpaceAfterKeywords: false
@@ -444,7 +488,10 @@ Indent:
 Braces:
   Default: otbs
   Declarations: allman
+  Aggregates: knr
+  Enums: otbs
   Functions: stroustrup
+  FunctionLiterals: allman
   ControlStatements: knr
 Spacing:
   AfterCast: false
@@ -457,7 +504,7 @@ Spacing:
   AroundBinaryOperators: false
 Wrapping:
   KeepExistingLineBreaks: true
-  SplitOperatorAtLineEnd: true
+  BinaryOperators: after
   ReflowPropertyChains: false
   TemplateConstraints: always-newline
   SingleTemplateConstraintIndent: true
@@ -470,8 +517,16 @@ Statements:
 
     const alfa = parse("alfa", "ControlBraceStyle: allman\nBasedOnStyle: Alfa\n");
     assert(alfa.dfmt_soft_max_line_length == 100);
+    assert(alfa.indent_size == 2);
+    assert(alfa.adfmt_continuation_indent_width == 4);
     assert(alfa.declarationBraceStyle() == BraceStyle.allman);
+    assert(alfa.aggregateBraceStyle() == BraceStyle.allman);
+    assert(alfa.enumBraceStyle() == BraceStyle.allman);
+    assert(alfa.functionBraceStyle() == BraceStyle.allman);
+    assert(alfa.functionLiteralBraceStyle() == BraceStyle.knr);
     assert(alfa.controlBraceStyle() == BraceStyle.allman);
+    assert(alfa.dfmt_space_after_cast == OptionalBoolean.f);
+    assert(alfa.dfmt_split_operator_at_line_end == OptionalBoolean.t);
 
     const linux = parse("linux", "BasedOnStyle: Linux\n");
     assert(linux.indent_style == IndentStyle.tab);
@@ -517,5 +572,8 @@ Statements:
         "must be greater than or equal to soft column limit");
     assertConfigError("IndentWidth: 2\nIndent:\n  Width: 4\n",
         "configure the same option");
+    assertConfigError("SplitOperatorAtLineEnd: true\nBinaryOperatorBreakStyle: before\n",
+        "configure the same option");
+    assertConfigError("Wrapping:\n  BinaryOperators: middle\n", "expected before or after");
     assertConfigError("BasedOnStyle: Unknown\n", "unknown BasedOnStyle");
 }

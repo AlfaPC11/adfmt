@@ -28,7 +28,10 @@ The directory may contain `.adfmt`, `.editorconfig`, or both.
 BasedOnStyle: Alfa
 Braces:
   Declarations: allman
+  Aggregates: allman
+  Enums: allman
   Functions: allman
+  FunctionLiterals: knr
   ControlStatements: knr
 ```
 
@@ -59,6 +62,7 @@ BasedOnStyle: Alfa
 ColumnLimit: 100
 SoftColumnLimit: 80
 Wrapping:
+  BinaryOperators: after
   NewlinePenalty: 240
   LongLinePenalty: 50
 Indent:

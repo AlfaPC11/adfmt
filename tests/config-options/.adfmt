@@ -11,7 +11,10 @@ Indent:
 
 Braces:
   Declarations: allman
+  Aggregates: knr
+  Enums: otbs
   Functions: stroustrup
+  FunctionLiterals: allman
   ControlStatements: knr
 
 Spacing:
@@ -19,5 +22,6 @@ Spacing:
   AroundBinaryOperators: false
 
 Wrapping:
+  BinaryOperators: before
   NewlinePenalty: 240
   LongLinePenalty: 50

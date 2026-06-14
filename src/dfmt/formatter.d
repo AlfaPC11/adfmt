@@ -139,11 +139,15 @@ private:
     BraceStyle braceStyleAt(size_t tokenIndex) const
     {
         immutable tokenLocation = tokens[tokenIndex].index;
+        if (astInformation.funLitStartLocations.canFindIndex(tokenLocation))
+            return config.functionLiteralBraceStyle();
         if (astInformation.funBodyLocations.canFindIndex(tokenLocation))
             return config.functionBraceStyle();
-        immutable isDeclarationBody = astInformation.aggregateBodyLocations.canFindIndex(tokenLocation)
-            || astInformation.enumBodyLocations.canFindIndex(tokenLocation);
-        return isDeclarationBody ? config.declarationBraceStyle() : config.controlBraceStyle();
+        if (astInformation.aggregateBodyLocations.canFindIndex(tokenLocation))
+            return config.aggregateBraceStyle();
+        if (astInformation.enumBodyLocations.canFindIndex(tokenLocation))
+            return config.enumBraceStyle();
+        return config.controlBraceStyle();
     }
 
     /// Current indentation level
@@ -851,7 +855,10 @@ private:
             indents.popWrapIndents();
 
             sBraceDepth++;
-            if (peekBackIsOneOf(true, tok!")", tok!"identifier")
+            immutable braceStyle = config.functionLiteralBraceStyle();
+            if (braceStyle == BraceStyle.allman)
+                newline();
+            else if (peekBackIsOneOf(true, tok!")", tok!"identifier")
                     && config.adfmt_space_before_braces)
                 write(" ");
             immutable bool multiline = isMultilineAt(index);

@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: BSL-1.0
 
 pkgname=adfmt
-pkgver=0.3.0
+pkgver=0.3.5
 pkgrel=1
-pkgdesc="Alfa's D Formatter with YAML configuration and independent brace styles"
+pkgdesc="Alfa's D Formatter with validated YAML configuration"
 arch=('x86_64')
 url='https://github.com/AlfaPC11/adfmt'
 license=('BSL-1.0')
@@ -33,6 +33,8 @@ package() {
   install -Dm644 PATENTS "$pkgdir/usr/share/licenses/$pkgname/PATENTS"
   install -Dm644 NOTICE "$pkgdir/usr/share/licenses/$pkgname/NOTICE"
   install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+  install -Dm644 DIFFERENCES.md "$pkgdir/usr/share/doc/$pkgname/DIFFERENCES.md"
+  install -Dm644 HISTORY.md "$pkgdir/usr/share/doc/$pkgname/HISTORY.md"
   cp -r docs examples "$pkgdir/usr/share/doc/$pkgname/"
   install -Dm644 bash-completion/completions/adfmt \
     "$pkgdir/usr/share/bash-completion/completions/adfmt"

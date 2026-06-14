@@ -57,12 +57,17 @@ or specialize it:
 ```yaml
 Braces:
   Declarations: allman
+  Aggregates: allman
+  Enums: allman
+  Functions: allman
+  FunctionLiterals: knr
   ControlStatements: knr
 ```
 
-Declaration braces cover functions, classes, interfaces, structs, unions,
-enums, templates, and unittest bodies. Control braces cover statements such as
-`if`, `else`, `for`, `foreach`, `while`, `switch`, `try`, and `catch`.
+`Declarations` remains the compatibility fallback. adfmt can further specialize
+aggregate bodies, enum bodies, named function bodies, and function literals.
+Control braces cover statements such as `if`, `else`, `for`, `foreach`,
+`while`, `switch`, `try`, and `catch`.
 
 ## 4. Update formatter suppression comments only if desired
 

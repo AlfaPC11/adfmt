@@ -1,5 +1,4 @@
-class Example
-{
+class Example{
   int calculate(int first,
           int second){
     if (first>second){
@@ -9,6 +8,14 @@ class Example
     }
   }
 }
+
+enum Mode{
+  first,
+  second
+}
+
+auto operation=(int value)
+{ return value+1; };
 
 int combine(int first, int second,
         int third, int fourth){

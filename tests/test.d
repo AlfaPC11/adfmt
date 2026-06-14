@@ -18,7 +18,8 @@ int main()
         foreach (entry; dirEntries(".", "*.d", SpanMode.shallow).filter!(e => e.baseName(".d") != "test"))
         {
             const source = entry.baseName;
-            if (source == "mixed_braces.d" || source == "adfmt_options.d")
+            if (source == "mixed_braces.d" || source == "adfmt_options.d"
+                    || source == "alfa_profile.d")
                 continue;
             const outFileName = buildPath(braceStyle, source ~ ".out");
             const refFileName = buildPath(braceStyle, source ~ ".ref");
@@ -55,6 +56,17 @@ int main()
     if (const result = spawnProcess(optionsCommand, stdin, File(optionsOutput, "w")).wait)
         return result;
     if (int ret = diff("adfmt_options.d.ref", optionsOutput))
+        return ret;
+
+    const alfaOutput = "alfa_profile.d.out";
+    scope (exit)
+        if (alfaOutput.exists)
+            remove(alfaOutput);
+    const alfaCommand = [adfmt, "--config=../examples/alfa", "alfa_profile.d"];
+    writeln(alfaCommand.join(" "));
+    if (const result = spawnProcess(alfaCommand, stdin, File(alfaOutput, "w")).wait)
+        return result;
+    if (int ret = diff("alfa_profile.d.ref", alfaOutput))
         return ret;
 
     foreach (entry; dirEntries("expected_failures", "*.d", SpanMode.shallow))

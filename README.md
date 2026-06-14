@@ -1,7 +1,7 @@
 # adfmt
 
-**adfmt** is Alfa's D Formatter, a fork of **dfmt** with independently
-configurable brace styles for declarations and control-flow blocks.
+**adfmt** is Alfa's D Formatter, a fork of **dfmt** with a validated YAML
+configuration system and independently configurable D syntax categories.
 
 Upstream project: <https://github.com/dlang-community/dfmt>
 
@@ -21,13 +21,17 @@ and the adfmt VS Code extension.
 | D-aware formatting | Yes | Yes, inherited from dfmt |
 | EditorConfig | Yes | Yes |
 | Extensionless YAML config | No | Yes, `.adfmt` |
-| Separate declaration/control braces | No | Yes |
-| Built-in styles | No | `Alfa`, `dfmt` |
+| Separate brace categories | No | Aggregates, enums, functions, function literals, and control flow |
+| Built-in styles | No | `Alfa`, `dfmt`, `Allman`, `K&R`, `Stroustrup`, `OTBS`, `Linux`, `Compact` |
 | Unknown-key validation | No | Yes |
 | Disable an entire project config | No | `DisableFormat` |
+| Configurable wrapping costs | No | Yes |
+| Binary operator break direction | Boolean CLI/EditorConfig option | Readable `before`/`after` YAML option |
 
 adfmt remains source-derived from dfmt. It is not a rewrite and deliberately
 keeps dfmt-compatible command-line and EditorConfig options where possible.
+See [DIFFERENCES.md](DIFFERENCES.md) for the detailed comparison and
+[HISTORY.md](HISTORY.md) for fork provenance.
 
 ## Status
 **adfmt** is beta quality. Make backups of your files or use source control
@@ -62,6 +66,17 @@ Versioned packages are published on
 * Clone the repository
 * run `dub build --build=release`, optionally with `--compiler=ldc2`
 
+### Bash completion
+
+Linux packages install completion automatically. For a source checkout:
+
+```sh
+source bash-completion/completions/adfmt
+```
+
+Completion covers every CLI option, boolean and enum values,
+`--option=value`, configuration directories, and D source paths.
+
 ## Using
 By default, adfmt reads its input from **stdin** and writes to **stdout**.
 If a file name is specified on the command line, input will be read from the
@@ -82,7 +97,10 @@ files that would apply to a D file in the current working directory and for an
 * `--align_switch_statements`: *see dfmt_align_switch_statements [below](#dfmt-specific-properties)*
 * `--brace_style`: *see dfmt_brace_style [below](#dfmt-specific-properties)*
 * `--declaration_brace_style`: *see dfmt_declaration_brace_style [below](#dfmt-specific-properties)*
+* `--aggregate_brace_style`: override brace style for class, interface, struct, and union bodies.
+* `--enum_brace_style`: override brace style for enum bodies.
 * `--function_brace_style`: override brace style for function bodies.
+* `--function_literal_brace_style`: override brace style for delegates and lambdas.
 * `--control_brace_style`: *see dfmt_control_brace_style [below](#dfmt-specific-properties)*
 * `--compact_labeled_statements`: *see dfmt_compact_labeled_statements [below](#dfmt-specific-properties)*
 * `--end_of_line`: *see end_of_line [below](#standard-editorconfig-properties)*
@@ -162,8 +180,9 @@ SoftColumnLimit: 100
 LineEnding: lf
 
 Indent:
-  Width: 4
-  TabWidth: 4
+  Width: 2
+  ContinuationWidth: 4
+  TabWidth: 2
   Style: space
   AlignSwitchStatements: true
   OutdentAttributes: true
@@ -172,10 +191,14 @@ Indent:
 Braces:
   Default: allman
   Declarations: allman
+  Aggregates: allman
+  Enums: allman
+  Functions: allman
+  FunctionLiterals: knr
   ControlStatements: knr
 
 Spacing:
-  AfterCast: true
+  AfterCast: false
   AfterKeywords: true
   BeforeFunctionParameters: false
   SelectiveImports: true
@@ -184,7 +207,7 @@ Spacing:
 
 Wrapping:
   KeepExistingLineBreaks: false
-  SplitOperatorAtLineEnd: false
+  BinaryOperators: after
   ReflowPropertyChains: true
   TemplateConstraints: conditional-newline-indent
   SingleTemplateConstraintIndent: false

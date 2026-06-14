@@ -1,0 +1,5 @@
+class Example{int calculate(int first,int second){if(first>second){return cast(int)first+second;}return second;}}
+
+enum Mode{first,second}
+
+auto operation=(int value){return value+1;};

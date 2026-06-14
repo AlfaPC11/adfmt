@@ -9,9 +9,9 @@ SoftColumnLimit: 100
 LineEnding: lf
 
 Indent:
-  Width: 4
+  Width: 2
   ContinuationWidth: 4
-  TabWidth: 4
+  TabWidth: 2
   Style: space
   AlignSwitchStatements: true
   OutdentAttributes: true
@@ -20,11 +20,14 @@ Indent:
 Braces:
   Default: allman
   Declarations: allman
+  Aggregates: allman
+  Enums: allman
   Functions: allman
+  FunctionLiterals: knr
   ControlStatements: knr
 
 Spacing:
-  AfterCast: true
+  AfterCast: false
   AfterKeywords: true
   BeforeFunctionParameters: false
   SelectiveImports: true
@@ -35,7 +38,7 @@ Spacing:
 
 Wrapping:
   KeepExistingLineBreaks: false
-  SplitOperatorAtLineEnd: false
+  BinaryOperators: after
   ReflowPropertyChains: true
   TemplateConstraints: conditional-newline-indent
   SingleTemplateConstraintIndent: false

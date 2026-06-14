@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BSL-1.0
 
 pkgname=adfmt
-pkgver=0.3.5
+pkgver=0.3.6
 pkgrel=1
 pkgdesc="Alfa's D Formatter with validated YAML configuration"
 arch=('x86_64')

@@ -49,6 +49,14 @@ Versioned packages are published on
 * Fedora and other RPM-based distributions: `.rpm`
 * Windows x86-64: Inno Setup installer `.exe` and portable `.exe`
 
+The Windows installer places the executable at
+`%LOCALAPPDATA%\Programs\adfmt\adfmt.exe` by default. Its checked
+command-line integration task adds `%LOCALAPPDATA%\Programs\adfmt` to the
+current user's `PATH`, so new terminals can invoke `adfmt` directly. The
+installer removes only that entry from the user `PATH` during uninstall.
+See [docs/windows.md](docs/windows.md) for installer, portable executable, and
+PATH details.
+
 ### Installing with DUB
 
 ```sh
@@ -76,6 +84,12 @@ source bash-completion/completions/adfmt
 
 Completion covers every CLI option, boolean and enum values,
 `--option=value`, configuration directories, and D source paths.
+
+### Maintainer releases
+
+Release validation, tagging, package generation, and recovery behavior are
+documented in [docs/releasing.md](docs/releasing.md). Release artifacts are
+built by GitHub Actions rather than by local platform-specific archive scripts.
 
 ## Using
 By default, adfmt reads its input from **stdin** and writes to **stdout**.

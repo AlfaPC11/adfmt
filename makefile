@@ -18,7 +18,7 @@ override DMD_FLAGS += $(DFLAGS)
 override LDC_FLAGS += $(DFLAGS)
 override GDC_FLAGS += $(DFLAGS)
 
-.PHONY: all clean install debug dmd ldc gdc pkg release test
+.PHONY: all clean install debug dmd ldc gdc pkg release release-check test
 
 all: bin/adfmt
 
@@ -59,5 +59,9 @@ install:
 	cp -f bin/adfmt $(DESTDIR)$(PREFIX)/bin/adfmt
 
 release:
-	./release.sh
-	$(MAKE) bin/githash.txt
+	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=0.3.6"; exit 2; }
+	./release.sh publish "$(VERSION)"
+
+release-check:
+	@test -n "$(VERSION)" || { echo "Usage: make release-check VERSION=0.3.6"; exit 2; }
+	./release.sh check "$(VERSION)"

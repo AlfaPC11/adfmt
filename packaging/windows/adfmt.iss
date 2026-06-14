@@ -4,18 +4,21 @@
 #define MyAppPublisher "Alfa"
 #define MyAppURL "https://github.com/AlfaPC11/adfmt"
 #define MyAppVersion GetEnv("ADFMT_VERSION")
+#define MyAppExeName "adfmt.exe"
 
 [Setup]
 AppId={{BDFB4D90-3750-499D-B18C-989E17759DCF}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}/issues
 AppUpdatesURL={#MyAppURL}/releases
-DefaultDirName={autopf}\adfmt
+DefaultDirName={localappdata}\Programs\adfmt
 DefaultGroupName=adfmt
 DisableProgramGroupPage=yes
+DisableWelcomePage=no
 LicenseFile=..\..\LICENSE.txt
 OutputDir=..\..\dist
 OutputBaseFilename=adfmt-{#MyAppVersion}-windows-x86_64-setup
@@ -26,7 +29,11 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=lowest
 ChangesEnvironment=yes
-UninstallDisplayIcon={app}\adfmt.exe
+CloseApplications=yes
+RestartApplications=no
+MinVersion=10.0
+UninstallDisplayName={#MyAppName} {#MyAppVersion}
+UninstallDisplayIcon={app}\{#MyAppExeName}
 VersionInfoVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription=Alfa's D Formatter installer
@@ -34,26 +41,142 @@ VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
 
 [Tasks]
-Name: addtopath; Description: "Add adfmt to the user PATH"; Flags: checkedonce
+Name: addtopath; Description: "Add the adfmt installation directory to the user PATH"; \
+  GroupDescription: "Command-line integration:"; Flags: checkedonce
 
 [Files]
-Source: "..\..\bin\adfmt.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\..\bin\adfmt.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; \
+  Flags: ignoreversion
 Source: "..\..\LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\PATENTS"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\NOTICE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
-[Registry]
-Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; \
-  ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(ExpandConstant('{app}')); \
-  Flags: preservestringtype
+[Icons]
+Name: "{group}\adfmt command prompt"; Filename: "{cmd}"; \
+  Parameters: "/K ""cd /d {app} && adfmt --help"""; WorkingDir: "{app}"
+Name: "{group}\Uninstall adfmt"; Filename: "{uninstallexe}"
+
+[Run]
+Filename: "{cmd}"; Parameters: "/C ""{app}\{#MyAppExeName}"" --version"; \
+  Description: "Verify the installed adfmt executable"; Flags: postinstall runhidden nowait
 
 [Code]
-function NeedsAddPath(Param: string): Boolean;
+const
+  EnvironmentKey = 'Environment';
+  EnvironmentValue = 'Path';
+  AdfmtRegistryKey = 'Software\Alfa\adfmt';
+  PathAddedValue = 'PathAddedByInstaller';
+
+function NormalizePathEntry(Value: string): string;
+begin
+  Result := RemoveQuotes(Trim(Value));
+  while (Length(Result) > 3) and (Result[Length(Result)] = '\') do
+    Delete(Result, Length(Result), 1);
+  Result := Uppercase(Result);
+end;
+
+function PathContains(const Paths, Entry: string): Boolean;
+var
+  Remaining: string;
+  Separator: Integer;
+  Item: string;
+begin
+  Result := False;
+  Remaining := Paths;
+  repeat
+    Separator := Pos(';', Remaining);
+    if Separator = 0 then
+    begin
+      Item := Remaining;
+      Remaining := '';
+    end
+    else
+    begin
+      Item := Copy(Remaining, 1, Separator - 1);
+      Delete(Remaining, 1, Separator);
+    end;
+
+    if NormalizePathEntry(Item) = NormalizePathEntry(Entry) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  until Remaining = '';
+end;
+
+function AddToUserPath(const Entry: string): Boolean;
 var
   Paths: string;
 begin
-  if not RegQueryStringValue(HKCU, 'Environment', 'Path', Paths) then
+  Result := False;
+  if not RegQueryStringValue(HKCU, EnvironmentKey, EnvironmentValue, Paths) then
     Paths := '';
-  Result := Pos(';' + Uppercase(Param) + ';', ';' + Uppercase(Paths) + ';') = 0;
+
+  if PathContains(Paths, Entry) then
+    Exit;
+
+  if (Paths <> '') and (Paths[Length(Paths)] <> ';') then
+    Paths := Paths + ';';
+  RegWriteExpandStringValue(HKCU, EnvironmentKey, EnvironmentValue, Paths + Entry);
+  Result := True;
+end;
+
+procedure RemoveFromUserPath(const Entry: string);
+var
+  Paths: string;
+  Remaining: string;
+  Updated: string;
+  Separator: Integer;
+  Item: string;
+begin
+  if not RegQueryStringValue(HKCU, EnvironmentKey, EnvironmentValue, Paths) then
+    Exit;
+
+  Remaining := Paths;
+  Updated := '';
+  repeat
+    Separator := Pos(';', Remaining);
+    if Separator = 0 then
+    begin
+      Item := Remaining;
+      Remaining := '';
+    end
+    else
+    begin
+      Item := Copy(Remaining, 1, Separator - 1);
+      Delete(Remaining, 1, Separator);
+    end;
+
+    if (Trim(Item) <> '') and
+       (NormalizePathEntry(Item) <> NormalizePathEntry(Entry)) then
+    begin
+      if Updated <> '' then
+        Updated := Updated + ';';
+      Updated := Updated + Item;
+    end;
+  until Remaining = '';
+
+  RegWriteExpandStringValue(HKCU, EnvironmentKey, EnvironmentValue, Updated);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if (CurStep = ssPostInstall) and WizardIsTaskSelected('addtopath') and
+     AddToUserPath(ExpandConstant('{app}')) then
+    RegWriteDWordValue(HKCU, AdfmtRegistryKey, PathAddedValue, 1);
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  PathAdded: Cardinal;
+begin
+  if (CurUninstallStep = usUninstall) and
+     RegQueryDWordValue(HKCU, AdfmtRegistryKey, PathAddedValue, PathAdded) and
+     (PathAdded = 1) then
+  begin
+    RemoveFromUserPath(ExpandConstant('{app}'));
+    RegDeleteValue(HKCU, AdfmtRegistryKey, PathAddedValue);
+    RegDeleteKeyIfEmpty(HKCU, AdfmtRegistryKey);
+  end;
 end;

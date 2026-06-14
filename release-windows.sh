@@ -1,21 +1,16 @@
 #!/usr/bin/env bash
-# Build the Windows binaries under Linux
-set -eux -o pipefail
+# SPDX-License-Identifier: BSL-1.0
 
-BIN_NAME=adfmt
+set -euo pipefail
 
-# Allow the script to be run from anywhere
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $DIR
+cat >&2 <<'EOF'
+release-windows.sh is no longer a standalone cross-compilation path.
 
-source setup-ldc-windows.sh
+Windows portable and Inno Setup packages are built by GitHub Actions.
+Use:
 
-# Run LDC with cross-compilation
-archiveName="$BIN_NAME-$VERSION-$OS-$ARCH_SUFFIX.zip"
-echo "Building $archiveName"
-mkdir -p bin
-DC=ldmd2 make ldc
+  ./release.sh check <version>
+  ./release.sh publish <version>
+EOF
 
-cd bin
-mv "${BIN_NAME}" "${BIN_NAME}.exe"
-zip "$archiveName" "${BIN_NAME}.exe"
+exit 2

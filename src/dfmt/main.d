@@ -144,7 +144,7 @@ else
                 "continuation_indent_width", &optConfig.adfmt_continuation_indent_width,
                 "indent_style|t", &optConfig.indent_style,
                 "indent_case_labels", &handleBooleans,
-                "inplace|i", &inplace,
+                "inplace|in-place|i", &inplace,
                 "max_line_length", &optConfig.max_line_length,
                 "soft_max_line_length", &optConfig.dfmt_soft_max_line_length,
                 "outdent_attributes", &handleBooleans,
@@ -173,6 +173,11 @@ else
             stderr.writeln(e.msg);
             return 1;
         }
+        catch (Exception e)
+        {
+            stderr.writeln(e.msg);
+            return 1;
+        }
 
         if (showVersion)
         {
@@ -188,6 +193,16 @@ else
 
         args.popFront();
         immutable bool readFromStdin = args.length == 0;
+        if (readFromStdin && inplace)
+        {
+            stderr.writeln("--inplace requires at least one file or directory");
+            return 1;
+        }
+        if (args.length >= 2 && !inplace)
+        {
+            stderr.writeln("multiple input paths require --inplace");
+            return 1;
+        }
 
         version (Windows)
         {
@@ -286,8 +301,6 @@ else
         {
             import std.file : dirEntries, isDir, SpanMode;
 
-            if (args.length >= 2)
-                inplace = true;
             int retVal;
             while (args.length > 0)
             {
@@ -295,7 +308,12 @@ else
                 args.popFront();
                 if (isDir(path))
                 {
-                    inplace = true;
+                    if (!inplace)
+                    {
+                        stderr.writeln("directory input requires --inplace: ", path);
+                        retVal = 1;
+                        continue;
+                    }
                     foreach (string name; dirEntries(path, "*.d", SpanMode.depth))
                         args ~= name;
                     continue;
@@ -369,80 +387,116 @@ private version (Windows)
     }
 }
 
-template optionsToString(E) if (is(E == enum))
-{
-    import std.algorithm.searching : startsWith;
-
-    enum optionsToString = () {
-
-        string result = "(";
-        foreach (s; [__traits(allMembers, E)])
-        {
-            if (!s.startsWith("_"))
-                result ~= s ~ "|";
-        }
-        result = result[0 .. $ - 1] ~ ")";
-        return result;
-    } ();
-}
-
 private void printHelp()
 {
     writeln(`adfmt `, VERSION, `
 Alfa's D Formatter
-https://github.com/dlang-community/dfmt
+https://github.com/AlfaPC11/adfmt
 
-Options:
-    --help, -h          Print this help message
-    --inplace, -i       Edit files in place
-    --config, -c    Path to directory to load .editorconfig and .adfmt from.
-    --version           Print the version number and then exit
+Usage:
+    adfmt [options] [file-or-directory ...]
 
-Formatting Options:
-    --align_switch_statements
-    --brace_style               `, optionsToString!(typeof(Config.dfmt_brace_style)),
-            `
-    --declaration_brace_style   `, optionsToString!(typeof(Config.dfmt_declaration_brace_style)),
-            `
-    --aggregate_brace_style     `, optionsToString!(typeof(Config.adfmt_aggregate_brace_style)),
-            `
-    --enum_brace_style          `, optionsToString!(typeof(Config.adfmt_enum_brace_style)),
-            `
-    --function_brace_style      `, optionsToString!(typeof(Config.dfmt_function_brace_style)),
-            `
-    --function_literal_brace_style
-                                `, optionsToString!(typeof(Config.adfmt_function_literal_brace_style)),
-            `
-    --control_brace_style       `, optionsToString!(typeof(Config.dfmt_control_brace_style)),
-            `
-    --end_of_line               `, optionsToString!(typeof(Config.end_of_line)), `
-    --indent_size
-    --continuation_indent_width
-    --indent_style, -t          `,
-            optionsToString!(typeof(Config.indent_style)), `
-    --keep_line_breaks
-    --indent_case_labels
-    --soft_max_line_length
-    --max_line_length
-    --outdent_attributes
+Input and output:
+    With no path, read D source from stdin and write formatted source to stdout.
+    With one file, read that file and write formatted source to stdout.
+    Multiple paths and directories require --inplace. adfmt never enables
+    file replacement implicitly.
+
+General options:
+    --help, -h
+        Print this help and exit.
+    --version
+        Print the build version and exit.
+    --inplace, --in-place, -i
+        Replace each input file after successful formatting.
+    --config, -c <directory>
+        Load .editorconfig and .adfmt only from the specified directory.
+
+Indentation and lines:
+    --indent_size <positive integer>
+        Spaces per block indentation level.
+    --continuation_indent_width <positive integer>
+        Spaces per wrapped continuation level.
+    --tab_width <positive integer>
+        Display width of a tab.
+    --indent_style, -t <tab|space>
+        Select tabs or spaces for block indentation.
+    --indent_case_labels <true|false>
+        Indent case and default labels inside switch statements.
+    --align_switch_statements <true|false>
+        Legacy inverse of --indent_case_labels.
+    --outdent_attributes <true|false>
+        Outdent supported declaration attributes.
+    --end_of_line <_default|lf|cr|crlf>
+        Select emitted line endings.
+    --max_line_length <positive integer>
+        Hard line-length limit.
+    --soft_max_line_length <positive integer>
+        Preferred line-length limit.
+
+Brace styles (allman|otbs|stroustrup|knr):
+    --brace_style <style>
+        Fallback style for every ordinary block.
+    --declaration_brace_style <style>
+        Fallback for declaration bodies.
+    --aggregate_brace_style <style>
+        Override class, interface, struct, and union bodies.
+    --enum_brace_style <style>
+        Override enum bodies.
+    --function_brace_style <style>
+        Override named function bodies.
+    --function_literal_brace_style <style>
+        Override delegate and lambda bodies.
+    --control_brace_style <style>
+        Override control-flow and statement blocks.
+
+Spacing (true|false):
     --space_after_cast
-    --space_before_function_parameters
+        Add a space after cast(...).
     --space_after_keywords
+        Add a space between control keywords and '('.
+    --space_before_function_parameters
+        Add a space before function parameter lists.
     --space_before_braces
+        Add a space before same-line opening braces.
     --space_around_binary_operators
+        Add spaces around binary operators.
     --selective_import_space
-    --single_template_constraint_indent
-    --split_operator_at_line_end
-    --compact_labeled_statements
-    --template_constraint_style
+        Add a space before ':' in selective imports.
     --space_before_aa_colon
+        Add a space before associative-array colons.
     --space_before_named_arg_colon
-    --single_indent
-    --reflow_property_chains
-    --wrapping_newline_penalty
-    --wrapping_long_line_penalty
-        `,
-            optionsToString!(typeof(Config.dfmt_template_constraint_style)));
+        Add a space before named-argument colons.
+
+Wrapping:
+    --keep_line_breaks <true|false>
+        Preserve compatible source line breaks.
+    --single_indent <true|false>
+        Use one continuation level inside parentheses.
+    --reflow_property_chains <true|false>
+        Recalculate line breaks in property and UFCS chains.
+    --split_operator_at_line_end <true|false>
+        Keep a split binary operator on the preceding line.
+    --template_constraint_style
+        <conditional_newline_indent|conditional_newline|
+         always_newline|always_newline_indent>
+        Control line breaks and indentation for template constraints.
+    --single_template_constraint_indent <true|false>
+        Use one indentation level for indented template constraints.
+    --wrapping_newline_penalty <positive integer>
+        Cost assigned to adding a line break.
+    --wrapping_long_line_penalty <positive integer>
+        Cost per column beyond the soft line limit.
+
+Statements:
+    --compact_labeled_statements <true|false>
+        Keep supported labeled statements on the label line.
+
+Configuration precedence:
+    defaults < .editorconfig < .adfmt < command line
+
+Full reference:
+    https://github.com/AlfaPC11/adfmt/blob/main/docs/cli.md`);
 }
 
 private string createFilePath(bool readFromStdin, string fileName)

@@ -27,12 +27,12 @@ The directory may contain `.adfmt`, `.editorconfig`, or both.
 ```yaml
 BasedOnStyle: Alfa
 Braces:
-  Declarations: allman
-  Aggregates: allman
-  Enums: allman
-  Functions: allman
-  FunctionLiterals: knr
-  ControlStatements: knr
+  Declarations: Allman
+  Aggregates: Allman
+  Enums: Allman
+  Functions: Allman
+  FunctionLiterals: Knr
+  ControlStatements: Knr
 ```
 
 ## Allman types with K&R functions
@@ -40,7 +40,7 @@ Braces:
 ```yaml
 BasedOnStyle: Linux
 Indent:
-  Style: space
+  Style: Space
   Width: 4
   TabWidth: 4
 ```
@@ -62,7 +62,7 @@ BasedOnStyle: Alfa
 ColumnLimit: 100
 SoftColumnLimit: 80
 Wrapping:
-  BinaryOperators: after
+  BinaryOperators: After
   NewlinePenalty: 240
   LongLinePenalty: 50
 Indent:

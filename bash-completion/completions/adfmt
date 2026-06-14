@@ -12,7 +12,7 @@ _adfmt()
 	options=(
 		--help -h
 		--version
-		--inplace -i
+		--inplace --in-place -i
 		--config -c
 		--align_switch_statements
 		--brace_style

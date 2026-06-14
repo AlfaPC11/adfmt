@@ -15,7 +15,7 @@ describe the additional contract maintained by adfmt.
 | Project config | `.editorconfig` | `.editorconfig` plus extensionless YAML `.adfmt` |
 | Precedence | defaults, EditorConfig, CLI | defaults, EditorConfig, `.adfmt`, CLI |
 | Validation | EditorConfig-compatible parsing | unknown keys, duplicate aliases, invalid types, and conflicting spellings are errors |
-| Base styles | implicit defaults | `Alfa`, `dfmt`, `Allman`, `K&R`, `Stroustrup`, `OTBS`, `Linux`, `Compact` |
+| Base styles | implicit defaults | `Alfa`, `Dfmt`, `Allman`, `Knr`, `Stroustrup`, `Otbs`, `Linux`, `Compact` |
 | Whole-project bypass | suppression comments only | `DisableFormat` plus suppression comments |
 | Editor assistance | EditorConfig tooling | published JSON schema used by the adfmt VS Code extension |
 
@@ -43,7 +43,7 @@ adfmt also adds:
 - independent continuation indentation width
 - separate hard and soft line limits in `.adfmt`
 - configurable newline and long-line wrapping costs
-- readable binary operator break direction (`before` or `after`)
+- readable binary operator break direction (`Before` or `After`)
 - same-line brace spacing and binary operator spacing
 - strict, composable built-in profiles
 
@@ -67,7 +67,7 @@ intentionally not copied because D has no direct equivalent.
 
 ## Compatibility
 
-The `dfmt` built-in profile is the compatibility baseline. Existing
+The `Dfmt` built-in profile is the compatibility baseline. Existing
 `.editorconfig` properties, inherited CLI flags, `// dfmt off` and
 `// dfmt on`, and ordinary dfmt formatting behavior remain supported.
 

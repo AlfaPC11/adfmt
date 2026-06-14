@@ -13,9 +13,9 @@ Configuration precedence, from lowest to highest, is:
 3. `.adfmt`
 4. command-line options
 
-`.adfmt` is YAML parsed by D-YAML. Keys are case-sensitive. Values documented
-as names are case-insensitive, and hyphens may be used in template constraint
-style values.
+`.adfmt` is YAML parsed by D-YAML. Keys and named values are case-sensitive.
+Keys and enum-like values use PascalCase. YAML booleans remain the standard
+lowercase `true` and `false`.
 
 ## Built-in styles
 
@@ -38,11 +38,11 @@ BasedOnStyle: Alfa
 
 | Profile | Main behavior |
 |---------|---------------|
-| `dfmt` | Upstream-compatible defaults and Allman braces |
+| `Dfmt` | Upstream-compatible defaults and Allman braces |
 | `Allman` | Every supported brace category starts on a new line |
-| `K&R` | K&R function braces and same-line control braces |
+| `Knr` | K&R function braces and same-line control braces |
 | `Stroustrup` | Same-line opening braces; `else`, `catch`, and `finally` start on new lines |
-| `OTBS` | Opening braces and continuation keywords stay on the same line |
+| `Otbs` | Opening braces and continuation keywords stay on the same line |
 | `Linux` | Tabs of width 8, Allman type declarations, K&R functions and controls |
 | `Compact` | Two-space indentation, 100 columns, OTBS braces |
 
@@ -57,27 +57,26 @@ written in `.adfmt` override lower-precedence EditorConfig values.
 
 | Nested key | Flat alias | Values | Alfa default |
 |------------|------------|--------|--------------|
-| `Language` | - | `D` | `D` |
-| `BasedOnStyle` | - | `Alfa`, `dfmt`, `Allman`, `K&R`, `Stroustrup`, `OTBS`, `Linux`, `Compact` | no profile |
+| `BasedOnStyle` | - | `Alfa`, `Dfmt`, `Allman`, `Knr`, `Stroustrup`, `Otbs`, `Linux`, `Compact` | no profile |
 | `DisableFormat` | - | `true`, `false` | `false` |
 | `ColumnLimit` | - | positive integer | `120` |
 | `SoftColumnLimit` | - | positive integer, at most `ColumnLimit` | `100` |
-| `LineEnding` | - | `default`, `lf`, `cr`, `crlf` | `lf` |
+| `LineEnding` | - | `Default`, `Lf`, `Cr`, `Crlf` | `Lf` |
 | `Indent.Width` | `IndentWidth` | positive integer | `2` |
 | `Indent.ContinuationWidth` | `ContinuationIndentWidth` | positive integer | `4` |
 | `Indent.TabWidth` | `TabWidth` | positive integer | `2` |
-| `Indent.Style` | `UseTab` | `space`, `tab`, `never`, `always` | `space` |
+| `Indent.Style` | `UseTab` | `Space`, `Tab` | `Space` |
 | `Indent.AlignSwitchStatements` | `AlignSwitchStatements` | boolean | `true` |
 | `Indent.CaseLabels` | `IndentCaseLabels` | boolean | `false` |
 | `Indent.OutdentAttributes` | `OutdentAttributes` | boolean | `true` |
 | `Indent.SingleContinuationIndent` | `SingleIndent` | boolean | `false` |
-| `Braces.Default` | `BraceStyle` | `allman`, `otbs`, `stroustrup`, `knr` | `allman` |
-| `Braces.Declarations` | `DeclarationBraceStyle` | brace style | `allman` |
-| `Braces.Aggregates` | `AggregateBraceStyle` | brace style | `allman` |
-| `Braces.Enums` | `EnumBraceStyle` | brace style | `allman` |
+| `Braces.Default` | `BraceStyle` | `Allman`, `Otbs`, `Stroustrup`, `Knr` | `Allman` |
+| `Braces.Declarations` | `DeclarationBraceStyle` | brace style | `Allman` |
+| `Braces.Aggregates` | `AggregateBraceStyle` | brace style | `Allman` |
+| `Braces.Enums` | `EnumBraceStyle` | brace style | `Allman` |
 | `Braces.Functions` | `FunctionBraceStyle` | brace style | inherits declarations |
-| `Braces.FunctionLiterals` | `FunctionLiteralBraceStyle` | brace style | `knr` |
-| `Braces.ControlStatements` | `ControlBraceStyle` | brace style | `knr` |
+| `Braces.FunctionLiterals` | `FunctionLiteralBraceStyle` | brace style | `Knr` |
+| `Braces.ControlStatements` | `ControlBraceStyle` | brace style | `Knr` |
 | `Spacing.AfterCast` | `SpaceAfterCast` | boolean | `false` |
 | `Spacing.AfterKeywords` | `SpaceAfterKeywords` | boolean | `true` |
 | `Spacing.BeforeFunctionParameters` | `SpaceBeforeFunctionParameters` | boolean | `false` |
@@ -87,17 +86,17 @@ written in `.adfmt` override lower-precedence EditorConfig values.
 | `Spacing.BeforeBraces` | `SpaceBeforeBraces` | boolean | `true` |
 | `Spacing.AroundBinaryOperators` | `SpaceAroundBinaryOperators` | boolean | `true` |
 | `Wrapping.KeepExistingLineBreaks` | `KeepLineBreaks` | boolean | `false` |
-| `Wrapping.BinaryOperators` | `BinaryOperatorBreakStyle` | `before`, `after` | `after` |
+| `Wrapping.BinaryOperators` | `BinaryOperatorBreakStyle` | `Before`, `After` | `After` |
 | `Wrapping.SplitOperatorAtLineEnd` | `SplitOperatorAtLineEnd` | boolean | `true` |
 | `Wrapping.ReflowPropertyChains` | `ReflowPropertyChains` | boolean | `true` |
-| `Wrapping.TemplateConstraints` | `TemplateConstraintStyle` | see below | `conditional-newline-indent` |
+| `Wrapping.TemplateConstraints` | `TemplateConstraintStyle` | see below | `ConditionalNewlineIndent` |
 | `Wrapping.SingleTemplateConstraintIndent` | `SingleTemplateConstraintIndent` | boolean | `false` |
 | `Wrapping.NewlinePenalty` | `WrappingNewlinePenalty` | positive integer | `480` |
 | `Wrapping.LongLinePenalty` | `WrappingLongLinePenalty` | positive integer | `25` |
 | `Statements.CompactLabels` | `CompactLabeledStatements` | boolean | `true` |
 
-Template constraint styles are `conditional-newline-indent`,
-`conditional-newline`, `always-newline`, and `always-newline-indent`.
+Template constraint styles are `ConditionalNewlineIndent`,
+`ConditionalNewline`, `AlwaysNewline`, and `AlwaysNewlineIndent`.
 
 Nested and flat spellings are equivalent, but both spellings of the same option
 cannot appear in one file. This is rejected because the intended winner would
@@ -113,31 +112,30 @@ Indent:
 ## Complete nested example
 
 ```yaml
-Language: D
 BasedOnStyle: Alfa
 DisableFormat: false
 
 ColumnLimit: 120
 SoftColumnLimit: 100
-LineEnding: lf
+LineEnding: Lf
 
 Indent:
   Width: 2
   ContinuationWidth: 4
   TabWidth: 2
-  Style: space
+  Style: Space
   CaseLabels: false
   OutdentAttributes: true
   SingleContinuationIndent: false
 
 Braces:
-  Default: allman
-  Declarations: allman
-  Aggregates: allman
-  Enums: allman
-  Functions: allman
-  FunctionLiterals: knr
-  ControlStatements: knr
+  Default: Allman
+  Declarations: Allman
+  Aggregates: Allman
+  Enums: Allman
+  Functions: Allman
+  FunctionLiterals: Knr
+  ControlStatements: Knr
 
 Spacing:
   AfterCast: false
@@ -151,9 +149,9 @@ Spacing:
 
 Wrapping:
   KeepExistingLineBreaks: false
-  BinaryOperators: after
+  BinaryOperators: After
   ReflowPropertyChains: true
-  TemplateConstraints: conditional-newline-indent
+  TemplateConstraints: ConditionalNewlineIndent
   SingleTemplateConstraintIndent: false
   NewlinePenalty: 480
   LongLinePenalty: 25
@@ -171,6 +169,7 @@ adfmt rejects:
 - flat and nested aliases that configure the same option
 - unsupported sequences or complex YAML values
 - invalid booleans, enum names, and line endings
+- incorrectly cased keys or named values
 - zero or negative widths and column limits
 - a soft column limit greater than the hard column limit
 
@@ -190,7 +189,7 @@ Errors include the `.adfmt` path and the option that caused the failure.
 - A higher `Wrapping.LongLinePenalty` makes text beyond `SoftColumnLimit` more
   expensive.
 - `Wrapping.BinaryOperators` is the readable form of the inherited
-  `SplitOperatorAtLineEnd` behavior. `after` keeps an operator on the preceding
-  line; `before` starts the continuation line with it.
+  `SplitOperatorAtLineEnd` behavior. `After` keeps an operator on the preceding
+  line; `Before` starts the continuation line with it.
 - `Spacing.BeforeBraces: false` affects same-line braces only. Allman braces
   remain on their own line.

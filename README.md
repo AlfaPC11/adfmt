@@ -22,11 +22,11 @@ and the adfmt VS Code extension.
 | EditorConfig | Yes | Yes |
 | Extensionless YAML config | No | Yes, `.adfmt` |
 | Separate brace categories | No | Aggregates, enums, functions, function literals, and control flow |
-| Built-in styles | No | `Alfa`, `dfmt`, `Allman`, `K&R`, `Stroustrup`, `OTBS`, `Linux`, `Compact` |
+| Built-in styles | No | `Alfa`, `Dfmt`, `Allman`, `Knr`, `Stroustrup`, `Otbs`, `Linux`, `Compact` |
 | Unknown-key validation | No | Yes |
 | Disable an entire project config | No | `DisableFormat` |
 | Configurable wrapping costs | No | Yes |
-| Binary operator break direction | Boolean CLI/EditorConfig option | Readable `before`/`after` YAML option |
+| Binary operator break direction | Boolean CLI/EditorConfig option | Readable `Before`/`After` YAML option |
 
 adfmt remains source-derived from dfmt. It is not a rewrite and deliberately
 keeps dfmt-compatible command-line and EditorConfig options where possible.
@@ -92,8 +92,14 @@ files that would apply to a D file in the current working directory and for an
 `.editorconfig`, `.adfmt`, then command-line options.
 
 ### Options
+
+The complete input-mode, value, precedence, and exit-status reference is in
+[docs/cli.md](docs/cli.md). `adfmt --help` includes the same option-level
+descriptions for offline use.
+
 * `--help | -h`: Display command line options.
-* `--inplace | -i`: A file name is required and the file will be edited in-place.
+* `--inplace | --in-place | -i`: Replace explicitly provided files. Required
+  for multiple paths and directories; never enabled implicitly.
 * `--align_switch_statements`: *see dfmt_align_switch_statements [below](#dfmt-specific-properties)*
 * `--brace_style`: *see dfmt_brace_style [below](#dfmt-specific-properties)*
 * `--declaration_brace_style`: *see dfmt_declaration_brace_style [below](#dfmt-specific-properties)*
@@ -172,30 +178,29 @@ See also the [usage examples](docs/examples.md) and
 [frequently asked questions](docs/faq.md).
 
 ```yaml
-Language: D
 BasedOnStyle: Alfa
 DisableFormat: false
 ColumnLimit: 120
 SoftColumnLimit: 100
-LineEnding: lf
+LineEnding: Lf
 
 Indent:
   Width: 2
   ContinuationWidth: 4
   TabWidth: 2
-  Style: space
+  Style: Space
   AlignSwitchStatements: true
   OutdentAttributes: true
   SingleContinuationIndent: false
 
 Braces:
-  Default: allman
-  Declarations: allman
-  Aggregates: allman
-  Enums: allman
-  Functions: allman
-  FunctionLiterals: knr
-  ControlStatements: knr
+  Default: Allman
+  Declarations: Allman
+  Aggregates: Allman
+  Enums: Allman
+  Functions: Allman
+  FunctionLiterals: Knr
+  ControlStatements: Knr
 
 Spacing:
   AfterCast: false
@@ -207,9 +212,9 @@ Spacing:
 
 Wrapping:
   KeepExistingLineBreaks: false
-  BinaryOperators: after
+  BinaryOperators: After
   ReflowPropertyChains: true
-  TemplateConstraints: conditional-newline-indent
+  TemplateConstraints: ConditionalNewlineIndent
   SingleTemplateConstraintIndent: false
 
 Statements:

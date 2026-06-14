@@ -22,7 +22,7 @@ Existing `.editorconfig` files continue to work. To preserve dfmt defaults
 explicitly, add this extensionless file at the project root:
 
 ```yaml
-BasedOnStyle: dfmt
+BasedOnStyle: Dfmt
 ```
 
 You can then move options into `.adfmt` one at a time. For example:
@@ -35,9 +35,9 @@ max_line_length = 100
 becomes:
 
 ```yaml
-BasedOnStyle: dfmt
+BasedOnStyle: Dfmt
 Braces:
-  Default: allman
+  Default: Allman
 ColumnLimit: 100
 ```
 
@@ -49,19 +49,19 @@ dfmt has one general brace setting. adfmt can preserve it:
 
 ```yaml
 Braces:
-  Default: allman
+  Default: Allman
 ```
 
 or specialize it:
 
 ```yaml
 Braces:
-  Declarations: allman
-  Aggregates: allman
-  Enums: allman
-  Functions: allman
-  FunctionLiterals: knr
-  ControlStatements: knr
+  Declarations: Allman
+  Aggregates: Allman
+  Enums: Allman
+  Functions: Allman
+  FunctionLiterals: Knr
+  ControlStatements: Knr
 ```
 
 `Declarations` remains the compatibility fallback. adfmt can further specialize

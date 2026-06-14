@@ -39,7 +39,6 @@ Config parseAdfmtConfig(string path)
     import std.conv : ConvException, to;
     import std.exception : enforce;
     import std.format : format;
-    import std.string : replace, toLower;
 
     Config result;
     result.pattern = "*.d";
@@ -51,11 +50,10 @@ Config parseAdfmtConfig(string path)
 
     OptionalBoolean booleanValue(string key, string value)
     {
-        const normalized = value.toLower;
-        enforce(normalized == "true" || normalized == "false",
+        enforce(value == "true" || value == "false",
             format("%s: invalid value '%s' for %s; expected true or false",
                 path, value, key));
-        return normalized == "true" ? OptionalBoolean.t : OptionalBoolean.f;
+        return value == "true" ? OptionalBoolean.t : OptionalBoolean.f;
     }
 
     int positiveIntegerValue(string key, string value)
@@ -75,25 +73,33 @@ Config parseAdfmtConfig(string path)
 
     BraceStyle braceValue(string key, string value)
     {
-        const normalized = value.toLower.replace("-", "_");
-        try
-            return normalized.to!BraceStyle;
-        catch (ConvException)
-            throw new Exception(format(
-                "%s: invalid value '%s' for %s; expected allman, otbs, stroustrup, or knr",
-                path, value, key));
+        if (value == "Allman")
+            return BraceStyle.allman;
+        if (value == "Otbs")
+            return BraceStyle.otbs;
+        if (value == "Stroustrup")
+            return BraceStyle.stroustrup;
+        if (value == "Knr")
+            return BraceStyle.knr;
+        throw new Exception(format(
+            "%s: invalid value '%s' for %s; expected Allman, Otbs, Stroustrup, or Knr",
+            path, value, key));
     }
 
     TemplateConstraintStyle constraintValue(string key, string value)
     {
-        const normalized = value.toLower.replace("-", "_");
-        try
-            return normalized.to!TemplateConstraintStyle;
-        catch (ConvException)
-            throw new Exception(format(
-                "%s: invalid value '%s' for %s; expected conditional-newline-indent, "
-                ~ "conditional-newline, always-newline, or always-newline-indent",
-                path, value, key));
+        if (value == "ConditionalNewlineIndent")
+            return TemplateConstraintStyle.conditional_newline_indent;
+        if (value == "ConditionalNewline")
+            return TemplateConstraintStyle.conditional_newline;
+        if (value == "AlwaysNewline")
+            return TemplateConstraintStyle.always_newline;
+        if (value == "AlwaysNewlineIndent")
+            return TemplateConstraintStyle.always_newline_indent;
+        throw new Exception(format(
+            "%s: invalid value '%s' for %s; expected ConditionalNewlineIndent, "
+            ~ "ConditionalNewline, AlwaysNewline, or AlwaysNewlineIndent",
+            path, value, key));
     }
 
     void markConfigured(string canonicalKey, string inputKey)
@@ -109,9 +115,6 @@ Config parseAdfmtConfig(string path)
     {
         switch (key)
         {
-        case "Language":
-            enforce(value.toLower == "d", path ~ ": Language must be D");
-            break;
         case "BasedOnStyle":
             break;
         case "DisableFormat":
@@ -128,18 +131,17 @@ Config parseAdfmtConfig(string path)
             break;
         case "LineEnding":
             markConfigured("LineEnding", key);
-            const normalized = value.toLower;
-            if (normalized == "default")
+            if (value == "Default")
                 result.end_of_line = EOL._default;
-            else if (normalized == "lf")
+            else if (value == "Lf")
                 result.end_of_line = EOL.lf;
-            else if (normalized == "cr")
+            else if (value == "Cr")
                 result.end_of_line = EOL.cr;
-            else if (normalized == "crlf")
+            else if (value == "Crlf")
                 result.end_of_line = EOL.crlf;
             else
                 throw new Exception(format(
-                    "%s: invalid value '%s' for LineEnding; expected default, lf, cr, or crlf",
+                    "%s: invalid value '%s' for LineEnding; expected Default, Lf, Cr, or Crlf",
                     path, value));
             break;
         case "IndentWidth":
@@ -160,14 +162,13 @@ Config parseAdfmtConfig(string path)
         case "UseTab":
         case "Indent.Style":
             markConfigured("Indent.Style", key);
-            const normalized = value.toLower;
-            if (normalized == "never" || normalized == "space")
+            if (value == "Space")
                 result.indent_style = IndentStyle.space;
-            else if (normalized == "always" || normalized == "tab")
+            else if (value == "Tab")
                 result.indent_style = IndentStyle.tab;
             else
                 throw new Exception(format(
-                    "%s: invalid value '%s' for %s; expected never, always, space, or tab",
+                    "%s: invalid value '%s' for %s; expected Space or Tab",
                     path, value, key));
             break;
         case "AlignSwitchStatements":
@@ -280,12 +281,11 @@ Config parseAdfmtConfig(string path)
         case "BinaryOperatorBreakStyle":
         case "Wrapping.BinaryOperators":
             markConfigured("Wrapping.SplitOperatorAtLineEnd", key);
-            const normalized = value.toLower;
-            enforce(normalized == "before" || normalized == "after",
-                format("%s: invalid value '%s' for %s; expected before or after",
+            enforce(value == "Before" || value == "After",
+                format("%s: invalid value '%s' for %s; expected Before or After",
                     path, value, key));
             result.dfmt_split_operator_at_line_end =
-                normalized == "after" ? OptionalBoolean.t : OptionalBoolean.f;
+                value == "After" ? OptionalBoolean.t : OptionalBoolean.f;
             break;
         case "ReflowPropertyChains":
         case "Wrapping.ReflowPropertyChains":
@@ -336,18 +336,15 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
 {
     import std.exception : enforce;
     import std.format : format;
-    import std.string : toLower;
 
-    const normalized = style.toLower;
-    enforce(normalized == "alfa" || normalized == "dfmt" || normalized == "allman"
-            || normalized == "k&r" || normalized == "knr"
-            || normalized == "stroustrup" || normalized == "otbs"
-            || normalized == "linux" || normalized == "compact",
-        format("%s: unknown BasedOnStyle '%s'; expected Alfa, dfmt, Allman, "
-            ~ "K&R, Stroustrup, OTBS, Linux, or Compact", path, style));
+    enforce(style == "Alfa" || style == "Dfmt" || style == "Allman"
+            || style == "Knr" || style == "Stroustrup" || style == "Otbs"
+            || style == "Linux" || style == "Compact",
+        format("%s: unknown BasedOnStyle '%s'; expected Alfa, Dfmt, Allman, "
+            ~ "Knr, Stroustrup, Otbs, Linux, or Compact", path, style));
 
     config.initializeWithDefaults();
-    if (normalized == "alfa")
+    if (style == "Alfa")
     {
         config.end_of_line = EOL.lf;
         config.indent_size = 2;
@@ -364,7 +361,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.dfmt_align_switch_statements = OptionalBoolean.t;
         config.dfmt_split_operator_at_line_end = OptionalBoolean.t;
     }
-    else if (normalized == "allman")
+    else if (style == "Allman")
     {
         config.dfmt_brace_style = BraceStyle.allman;
         config.dfmt_declaration_brace_style = BraceStyle.allman;
@@ -372,7 +369,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.adfmt_function_literal_brace_style = BraceStyle.allman;
         config.dfmt_control_brace_style = BraceStyle.allman;
     }
-    else if (normalized == "k&r" || normalized == "knr")
+    else if (style == "Knr")
     {
         config.dfmt_brace_style = BraceStyle.knr;
         config.dfmt_declaration_brace_style = BraceStyle.knr;
@@ -380,7 +377,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.adfmt_function_literal_brace_style = BraceStyle.knr;
         config.dfmt_control_brace_style = BraceStyle.knr;
     }
-    else if (normalized == "stroustrup")
+    else if (style == "Stroustrup")
     {
         config.dfmt_brace_style = BraceStyle.stroustrup;
         config.dfmt_declaration_brace_style = BraceStyle.stroustrup;
@@ -388,7 +385,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.adfmt_function_literal_brace_style = BraceStyle.stroustrup;
         config.dfmt_control_brace_style = BraceStyle.stroustrup;
     }
-    else if (normalized == "otbs")
+    else if (style == "Otbs")
     {
         config.dfmt_brace_style = BraceStyle.otbs;
         config.dfmt_declaration_brace_style = BraceStyle.otbs;
@@ -396,7 +393,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.adfmt_function_literal_brace_style = BraceStyle.otbs;
         config.dfmt_control_brace_style = BraceStyle.otbs;
     }
-    else if (normalized == "linux")
+    else if (style == "Linux")
     {
         config.dfmt_brace_style = BraceStyle.knr;
         config.dfmt_declaration_brace_style = BraceStyle.allman;
@@ -408,7 +405,7 @@ private void applyBuiltInStyle(ref Config config, string style, string path)
         config.indent_style = IndentStyle.tab;
         config.adfmt_continuation_indent_width = 8;
     }
-    else if (normalized == "compact")
+    else if (style == "Compact")
     {
         config.dfmt_brace_style = BraceStyle.otbs;
         config.dfmt_declaration_brace_style = BraceStyle.otbs;
@@ -447,17 +444,17 @@ BasedOnStyle: Alfa
 IndentWidth: 2
 ContinuationIndentWidth: 6
 TabWidth: 8
-UseTab: always
+UseTab: Tab
 AlignSwitchStatements: false
 OutdentAttributes: false
 SingleIndent: true
-BraceStyle: otbs
-DeclarationBraceStyle: allman
-AggregateBraceStyle: knr
-EnumBraceStyle: otbs
-FunctionBraceStyle: stroustrup
-FunctionLiteralBraceStyle: allman
-ControlBraceStyle: knr
+BraceStyle: Otbs
+DeclarationBraceStyle: Allman
+AggregateBraceStyle: Knr
+EnumBraceStyle: Otbs
+FunctionBraceStyle: Stroustrup
+FunctionLiteralBraceStyle: Allman
+ControlBraceStyle: Knr
 SpaceAfterCast: false
 SpaceAfterKeywords: false
 SpaceBeforeFunctionParameters: true
@@ -469,7 +466,7 @@ SpaceAroundBinaryOperators: false
 KeepLineBreaks: true
 SplitOperatorAtLineEnd: true
 ReflowPropertyChains: false
-TemplateConstraintStyle: always-newline
+TemplateConstraintStyle: AlwaysNewline
 SingleTemplateConstraintIndent: true
 WrappingNewlinePenalty: 500
 WrappingLongLinePenalty: 30
@@ -481,18 +478,18 @@ Indent:
   Width: 2
   ContinuationWidth: 6
   TabWidth: 8
-  Style: tab
+  Style: Tab
   AlignSwitchStatements: false
   OutdentAttributes: false
   SingleContinuationIndent: true
 Braces:
-  Default: otbs
-  Declarations: allman
-  Aggregates: knr
-  Enums: otbs
-  Functions: stroustrup
-  FunctionLiterals: allman
-  ControlStatements: knr
+  Default: Otbs
+  Declarations: Allman
+  Aggregates: Knr
+  Enums: Otbs
+  Functions: Stroustrup
+  FunctionLiterals: Allman
+  ControlStatements: Knr
 Spacing:
   AfterCast: false
   AfterKeywords: false
@@ -504,9 +501,9 @@ Spacing:
   AroundBinaryOperators: false
 Wrapping:
   KeepExistingLineBreaks: true
-  BinaryOperators: after
+  BinaryOperators: After
   ReflowPropertyChains: false
-  TemplateConstraints: always-newline
+  TemplateConstraints: AlwaysNewline
   SingleTemplateConstraintIndent: true
   NewlinePenalty: 500
   LongLinePenalty: 30
@@ -515,7 +512,7 @@ Statements:
 `);
     assert(flat == nested);
 
-    const alfa = parse("alfa", "ControlBraceStyle: allman\nBasedOnStyle: Alfa\n");
+    const alfa = parse("alfa", "ControlBraceStyle: Allman\nBasedOnStyle: Alfa\n");
     assert(alfa.dfmt_soft_max_line_length == 100);
     assert(alfa.indent_size == 2);
     assert(alfa.adfmt_continuation_indent_width == 4);
@@ -541,7 +538,7 @@ Statements:
     assert(allman.functionBraceStyle() == BraceStyle.allman);
     assert(allman.controlBraceStyle() == BraceStyle.allman);
 
-    const knr = parse("knr", "BasedOnStyle: K&R\n");
+    const knr = parse("knr", "BasedOnStyle: Knr\n");
     assert(knr.functionBraceStyle() == BraceStyle.knr);
     assert(knr.controlBraceStyle() == BraceStyle.knr);
 
@@ -567,13 +564,19 @@ Statements:
     assertConfigError("ContinuationIndentWidth: 0\n", "expected a positive integer");
     assertConfigError("WrappingNewlinePenalty: 0\n", "expected a positive integer");
     assertConfigError("WrappingLongLinePenalty: 0\n", "expected a positive integer");
-    assertConfigError("Braces:\n  Default: java\n", "expected allman, otbs, stroustrup, or knr");
-    assertConfigError("BasedOnStyle: dfmt\nColumnLimit: 80\nSoftColumnLimit: 100\n",
+    assertConfigError("Braces:\n  Default: java\n", "expected Allman, Otbs, Stroustrup, or Knr");
+    assertConfigError("BasedOnStyle: Dfmt\nColumnLimit: 80\nSoftColumnLimit: 100\n",
         "must be greater than or equal to soft column limit");
     assertConfigError("IndentWidth: 2\nIndent:\n  Width: 4\n",
         "configure the same option");
-    assertConfigError("SplitOperatorAtLineEnd: true\nBinaryOperatorBreakStyle: before\n",
+    assertConfigError("SplitOperatorAtLineEnd: true\nBinaryOperatorBreakStyle: Before\n",
         "configure the same option");
-    assertConfigError("Wrapping:\n  BinaryOperators: middle\n", "expected before or after");
+    assertConfigError("Wrapping:\n  BinaryOperators: middle\n", "expected Before or After");
     assertConfigError("BasedOnStyle: Unknown\n", "unknown BasedOnStyle");
+    assertConfigError("BasedOnStyle: alfa\n", "unknown BasedOnStyle");
+    assertConfigError("Language: D\n", "unknown .adfmt option 'Language'");
+    assertConfigError("indentWidth: 2\n", "unknown .adfmt option 'indentWidth'");
+    assertConfigError("LineEnding: lf\n", "expected Default, Lf, Cr, or Crlf");
+    assertConfigError("Braces:\n  Default: allman\n",
+        "expected Allman, Otbs, Stroustrup, or Knr");
 }

@@ -3,8 +3,14 @@
 # .adfmt configuration
 
 adfmt searches from the formatted source file's directory toward the file
-system root and loads the nearest extensionless `.adfmt` file. When stdin is
-used, the search starts in the current working directory.
+system root and loads the nearest extensionless `.adfmt` file. When standard
+input is used, `--stdin-filename` selects the source path used for both
+EditorConfig and `.adfmt` discovery. Without it, the search starts in the
+current working directory using the synthetic name `stdin.d`.
+
+Configuration files are limited to 1 MiB, 16 nested mapping levels, 256
+options, 128 bytes per key component, and 4096 bytes per string value. These
+limits keep editor-triggered formatting bounded when a repository is opened.
 
 Configuration precedence, from lowest to highest, is:
 

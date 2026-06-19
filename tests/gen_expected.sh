@@ -1,18 +1,30 @@
-#!/usr/bin/env bash
+#!/bin/sh
+# SPDX-License-Identifier: BSL-1.0
 
-argsFile=$1.args
-if [ -e ${argsFile} ]; then
-	args=$(cat ${argsFile})
+set -eu
+set -f
+
+if [ "$#" -ne 1 ]; then
+  echo "usage: gen_expected.sh <test-name-without-extension>" >&2
+  exit 2
 fi
-echo "Args:" ${args}
-../bin/dfmt --brace_style=allman ${args} $1.d > allman/$1.d.ref
-../bin/dfmt --brace_style=otbs ${args} $1.d > otbs/$1.d.ref
 
-echo "------------------"
-echo "allman:"
-echo "------------------"
-cat allman/$1.d.ref
-echo "------------------"
-echo "otbs:"
-echo "------------------"
-cat otbs/$1.d.ref
+name=$1
+arguments_file="$name.args"
+arguments=
+if [ -f "$arguments_file" ]; then
+  arguments=$(cat "$arguments_file")
+fi
+
+# Argument fixtures contain formatter options only and intentionally split on
+# whitespace. Filename expansion is disabled above.
+# shellcheck disable=SC2086
+set -- $arguments
+printf 'Args: %s\n' "$arguments"
+
+for style in allman otbs; do
+  output="$style/$name.d.ref"
+  ../bin/adfmt "--brace_style=$style" "$@" "$name.d" >"$output"
+  printf '%s\n%s:\n%s\n' '------------------' "$style" '------------------'
+  cat "$output"
+done

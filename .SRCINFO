@@ -1,7 +1,8 @@
 pkgbase = adfmt-git
-	pkgdesc = Alfa's D Formatter development version
-	pkgver = 0.3.5.r0.g845a9d3
+	pkgdesc = Alfa's D Formatter with separate declaration and control-flow brace styles
+	pkgver = 0.4.0.r0.g0000000
 	pkgrel = 1
+	epoch = 1
 	url = https://github.com/AlfaPC11/adfmt
 	arch = x86_64
 	license = BSL-1.0

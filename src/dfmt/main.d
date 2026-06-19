@@ -43,12 +43,23 @@ else
     import dfmt.adfmt_config : getAdfmtConfigFor;
     import dfmt.editorconfig : getConfigFor;
     import dfmt.formatter : format;
-    import std.array : appender, front, popFront;
+    import std.array : appender, array, front, popFront;
     import std.getopt : getopt, GetOptException;
-    import std.path : buildPath, dirName, expandTilde;
+    import std.path : absolutePath, baseName, buildPath, dirName, expandTilde;
     import std.stdio : File, stderr, stdin, stdout, writeln;
 
     int main(string[] args)
+    {
+        try
+            return run(args);
+        catch (Exception error)
+        {
+            stderr.writeln("adfmt: ", error.msg);
+            return 1;
+        }
+    }
+
+    private int run(string[] args)
     {
         bool inplace = false;
         Config optConfig;
@@ -56,6 +67,7 @@ else
         bool showHelp;
         bool showVersion;
         string explicitConfigDir;
+        string stdinFilename;
 
         void handleBooleans(string option, string value)
         {
@@ -145,6 +157,7 @@ else
                 "indent_style|t", &optConfig.indent_style,
                 "indent_case_labels", &handleBooleans,
                 "inplace|in-place|i", &inplace,
+                "stdin-filename", &stdinFilename,
                 "max_line_length", &optConfig.max_line_length,
                 "soft_max_line_length", &optConfig.dfmt_soft_max_line_length,
                 "outdent_attributes", &handleBooleans,
@@ -203,6 +216,11 @@ else
             stderr.writeln("multiple input paths require --inplace");
             return 1;
         }
+        if (!readFromStdin && stdinFilename.length)
+        {
+            stderr.writeln("--stdin-filename can only be used with standard input");
+            return 1;
+        }
 
         version (Windows)
         {
@@ -224,7 +242,6 @@ else
 
         ubyte[] buffer;
 
-        Config explicitConfig;
         Config explicitAdfmtConfig;
         if (explicitConfigDir)
         {
@@ -235,8 +252,6 @@ else
                 stderr.writeln("--config|c must specify existing directory path");
                 return 1;
             }
-            explicitConfig = getConfigFor!Config(explicitConfigDir);
-            explicitConfig.pattern = "*.d";
             try
                 explicitAdfmtConfig = getAdfmtConfigFor(explicitConfigDir, true);
             catch (Exception e)
@@ -250,24 +265,29 @@ else
         {
             import std.file : getcwd;
 
-            auto cwdDummyPath = buildPath(getcwd(), "dummy.d");
+            const inputPath = stdinFilename.length
+                ? absolutePath(expandTilde(stdinFilename))
+                : buildPath(getcwd(), "stdin.d");
 
             Config config;
             config.initializeWithDefaults();
             if (explicitConfigDir != "")
             {
-                config.merge(explicitConfig, buildPath(explicitConfigDir, "dummy.d"));
-                config.merge(explicitAdfmtConfig, buildPath(explicitConfigDir, "dummy.d"));
+                Config fileConfig = getConfigFor!Config(
+                    buildPath(explicitConfigDir, inputPath.baseName), true);
+                fileConfig.pattern = "*.d";
+                config.merge(fileConfig, inputPath);
+                config.merge(explicitAdfmtConfig, inputPath);
             }
             else
             {
-                Config fileConfig = getConfigFor!Config(getcwd());
+                Config fileConfig = getConfigFor!Config(inputPath);
                 fileConfig.pattern = "*.d";
-                config.merge(fileConfig, cwdDummyPath);
+                config.merge(fileConfig, inputPath);
                 try
                 {
-                    Config adfmtConfig = getAdfmtConfigFor(getcwd());
-                    config.merge(adfmtConfig, cwdDummyPath);
+                    Config adfmtConfig = getAdfmtConfigFor(inputPath);
+                    config.merge(adfmtConfig, inputPath);
                 }
                 catch (Exception e)
                 {
@@ -275,7 +295,7 @@ else
                     return 1;
                 }
             }
-            config.merge(optConfig, cwdDummyPath);
+            config.merge(optConfig, inputPath);
             if (!config.isValid())
                 return 1;
             ubyte[4096] inputBuffer;
@@ -293,19 +313,28 @@ else
                 stdout.rawWrite(buffer);
                 return 0;
             }
-            immutable bool formatSuccess = format("stdin", buffer,
+            immutable bool formatSuccess = format(
+                stdinFilename.length ? inputPath : "stdin", buffer,
                 stdout.lockingTextWriter(), &config);
             return formatSuccess ? 0 : 1;
         }
         else
         {
-            import std.file : dirEntries, isDir, SpanMode;
+            import std.algorithm : sort, uniq;
+            import std.file : dirEntries, isDir, isSymlink, SpanMode;
 
             int retVal;
+            string[] inputPaths;
             while (args.length > 0)
             {
                 const path = args.front;
                 args.popFront();
+                if (inplace && isSymlink(path))
+                {
+                    stderr.writeln("refusing to traverse or replace symbolic link: ", path);
+                    retVal = 1;
+                    continue;
+                }
                 if (isDir(path))
                 {
                     if (!inplace)
@@ -315,15 +344,40 @@ else
                         continue;
                     }
                     foreach (string name; dirEntries(path, "*.d", SpanMode.depth))
-                        args ~= name;
+                    {
+                        if (isSymlink(name))
+                        {
+                            stderr.writeln("skipping symbolic link: ", name);
+                            continue;
+                        }
+                        inputPaths ~= name;
+                    }
+                    continue;
+                }
+                inputPaths ~= path;
+            }
+
+            inputPaths = inputPaths.sort.uniq.array;
+            PendingReplacement[] replacements;
+            scope (exit) cleanupReplacements(replacements);
+
+            foreach (path; inputPaths)
+            {
+                if (inplace && isSymlink(path))
+                {
+                    stderr.writeln("refusing to replace symbolic link: ", path);
+                    retVal = 1;
                     continue;
                 }
                 Config config;
                 config.initializeWithDefaults();
                 if (explicitConfigDir != "")
                 {
-                    config.merge(explicitConfig, buildPath(explicitConfigDir, "dummy.d"));
-                    config.merge(explicitAdfmtConfig, buildPath(explicitConfigDir, "dummy.d"));
+                    Config fileConfig = getConfigFor!Config(
+                        buildPath(explicitConfigDir, path.baseName), true);
+                    fileConfig.pattern = "*.d";
+                    config.merge(fileConfig, path);
+                    config.merge(explicitAdfmtConfig, path);
                 }
                 else
                 {
@@ -361,7 +415,7 @@ else
                     if (formatSuccess)
                     {
                         if (inplace)
-                            File(path, "wb").rawWrite(output.data);
+                            replacements ~= stageReplacement(path, output.data);
                         else
                             stdout.rawWrite(output.data);
                     }
@@ -369,7 +423,120 @@ else
                         retVal = 1;
                 }
             }
+            if (retVal == 0 && inplace)
+                commitReplacements(replacements);
             return retVal;
+        }
+    }
+
+    private struct PendingReplacement
+    {
+        string path;
+        string temporaryPath;
+        string backupPath;
+        bool installed;
+    }
+
+    private PendingReplacement stageReplacement(string path, const(char)[] contents)
+    {
+        import std.file : exists, getAttributes, remove, setAttributes;
+        import std.uuid : randomUUID;
+
+        PendingReplacement replacement;
+        replacement.path = path;
+        replacement.temporaryPath = buildPath(path.dirName,
+            "." ~ path.baseName ~ ".adfmt-" ~ randomUUID().toString() ~ ".tmp");
+        scope (failure)
+            if (replacement.temporaryPath.exists)
+                remove(replacement.temporaryPath);
+
+        auto temporary = File(replacement.temporaryPath, "wb");
+        temporary.rawWrite(contents);
+        temporary.flush();
+        syncFile(temporary);
+        temporary.close();
+        setAttributes(replacement.temporaryPath, getAttributes(path));
+        return replacement;
+    }
+
+    private void syncFile(File file)
+    {
+        version (Posix)
+        {
+            import core.sys.posix.unistd : fsync;
+
+            if (fsync(file.fileno) != 0)
+                throw new Exception("could not synchronize temporary output");
+        }
+    }
+
+    private void commitReplacements(ref PendingReplacement[] replacements)
+    {
+        import std.file : exists, remove, rename;
+        import std.uuid : randomUUID;
+
+        try
+        {
+            foreach (ref replacement; replacements)
+            {
+                replacement.backupPath = buildPath(replacement.path.dirName,
+                    "." ~ replacement.path.baseName ~ ".adfmt-"
+                    ~ randomUUID().toString() ~ ".backup");
+                rename(replacement.path, replacement.backupPath);
+                try
+                    rename(replacement.temporaryPath, replacement.path);
+                catch (Exception installError)
+                {
+                    rename(replacement.backupPath, replacement.path);
+                    throw installError;
+                }
+                replacement.installed = true;
+            }
+
+        }
+        catch (Exception error)
+        {
+            foreach_reverse (ref replacement; replacements)
+            {
+                if (replacement.installed)
+                {
+                    if (replacement.path.exists)
+                        remove(replacement.path);
+                    if (replacement.backupPath.exists)
+                        rename(replacement.backupPath, replacement.path);
+                    replacement.installed = false;
+                }
+                else if (replacement.backupPath.length
+                        && replacement.backupPath.exists && !replacement.path.exists)
+                    rename(replacement.backupPath, replacement.path);
+            }
+            throw new Exception("could not replace input files; original files were restored: "
+                ~ error.msg);
+        }
+
+        foreach (ref replacement; replacements)
+        {
+            try
+            {
+                remove(replacement.backupPath);
+                replacement.backupPath = null;
+            }
+            catch (Exception error)
+                stderr.writeln("warning: could not remove backup ",
+                    replacement.backupPath, ": ", error.msg);
+        }
+    }
+
+    private void cleanupReplacements(ref PendingReplacement[] replacements)
+    {
+        import std.file : exists, remove;
+
+        foreach (ref replacement; replacements)
+        {
+            if (replacement.temporaryPath.length && replacement.temporaryPath.exists)
+                remove(replacement.temporaryPath);
+            if (replacement.backupPath.length && replacement.backupPath.exists)
+                remove(replacement.backupPath);
         }
     }
 }
@@ -408,7 +575,12 @@ General options:
     --version
         Print the build version and exit.
     --inplace, --in-place, -i
-        Replace each input file after successful formatting.
+        Replace input files only after every file formats successfully. Writes
+        are staged beside each source file and rolled back if replacement fails.
+        Symbolic links are never replaced or followed during directory scans.
+    --stdin-filename <path>
+        Use this path for configuration discovery and diagnostics while reading
+        source text from stdin. The path does not need to exist.
     --config, -c <directory>
         Load .editorconfig and .adfmt only from the specified directory.
 
@@ -497,18 +669,4 @@ Configuration precedence:
 
 Full reference:
     https://github.com/AlfaPC11/adfmt/blob/main/docs/cli.md`);
-}
-
-private string createFilePath(bool readFromStdin, string fileName)
-{
-    import std.file : getcwd;
-    import std.path : isRooted;
-
-    immutable string cwd = getcwd();
-    if (readFromStdin)
-        return buildPath(cwd, "dummy.d");
-    if (isRooted(fileName))
-        return fileName;
-    else
-        return buildPath(cwd, fileName);
 }

@@ -1,15 +1,20 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # SPDX-License-Identifier: BSL-1.0
 
-set -euo pipefail
+set -eu
 
-readonly REPOSITORY="AlfaPC11/adfmt"
-readonly WORKFLOW="Release"
+REPOSITORY="AlfaPC11/adfmt"
+WORKFLOW="Release"
 
 die()
 {
   printf 'release: %s\n' "$*" >&2
   exit 1
+}
+
+release_tag()
+{
+  printf 'adfmt-v%s' "$1"
 }
 
 usage()
@@ -22,12 +27,12 @@ Usage:
 
 Commands:
   check    Validate metadata and run release tests without changing Git.
-  publish  Run checks, create v<version>, push it, and watch GitHub Actions.
-  status   Show the workflow and GitHub Release state for v<version>.
+  publish  Run checks, create adfmt-v<version>, push it, and watch GitHub Actions.
+  status   Show the workflow and GitHub Release state for adfmt-v<version>.
 
-The version must be written without a leading "v", for example 0.3.6.
-GitHub Actions builds Arch, DEB, RPM, Windows installer, portable Windows,
-and SHA256SUMS assets.
+The version must be written without a leading "v", for example 0.4.0.
+GitHub Actions builds source, Arch, DEB, RPM, Windows installer, portable
+Windows, and SHA256SUMS assets.
 EOF
 }
 
@@ -39,8 +44,9 @@ repository_root()
 
 validate_version()
 {
-  local version=$1
-  [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*$ ]] ||
+  version=$1
+  printf '%s\n' "$version" |
+    grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z]+)*$' ||
     die "invalid version '$version'; expected a semantic version without leading v"
 }
 
@@ -52,22 +58,24 @@ require_command()
 
 check_metadata()
 {
-  local version=$1
-  local package_version
+  version=$1
+  package_version=$(sed -n 's/^pkgver=//p' packaging/arch/PKGBUILD)
 
-  package_version=$(
-    sed -n 's/^pkgver=//p' packaging/arch/PKGBUILD
-  )
-  [[ $package_version == "$version" ]] ||
+  [ "$package_version" = "$version" ] ||
     die "packaging/arch/PKGBUILD has pkgver=$package_version; expected $version"
 
-  grep -Fq 'version: ${ADFMT_VERSION}' packaging/nfpm.yaml ||
+  [ "$(tr -d '\r\n' < VERSION)" = "$version" ] ||
+    die "VERSION does not contain $version"
+
+  grep -Fq "version: \${ADFMT_VERSION}" packaging/nfpm.yaml ||
     die "packaging/nfpm.yaml must use \${ADFMT_VERSION}"
 
   grep -Fq '#define MyAppVersion GetEnv("ADFMT_VERSION")' \
     packaging/windows/adfmt.iss ||
     die "Windows installer must read ADFMT_VERSION"
 
+  sh -n release.sh
+  sh -n tests/cli.sh
   bash -n PKGBUILD
   bash -n bash-completion/completions/adfmt
   makepkg --printsrcinfo | diff -u .SRCINFO -
@@ -75,8 +83,10 @@ check_metadata()
 
 run_checks()
 {
-  local version=$1
-  local regression_runner="${TMPDIR:-/tmp}/adfmt-release-tests.$$"
+  version=$1
+  temporary_directory=$(mktemp -d "${TMPDIR:-/tmp}/adfmt-release.XXXXXX")
+  regression_runner="$temporary_directory/regression-tests"
+  trap 'rm -rf "$temporary_directory"' EXIT HUP INT TERM
 
   require_command dub
   require_command ldc2
@@ -86,42 +96,41 @@ run_checks()
   dub test --compiler=ldc2
   dub build --build=release --compiler=ldc2
   ldc2 tests/test.d -of="$regression_runner"
-  if ! (
-      cd tests
-      "$regression_runner"
-    ); then
-    rm -f "$regression_runner"
-    return 1
-  fi
-  rm -f "$regression_runner"
+  (
+    cd tests
+    "$regression_runner"
+  )
+  ADFMT_BIN="$PWD/bin/adfmt" tests/cli.sh
   git diff --check
 
+  rm -rf "$temporary_directory"
+  trap - EXIT HUP INT TERM
   printf 'release: checks passed for %s\n' "$version"
 }
 
 require_publish_state()
 {
-  local version=$1
-  local branch
+  version=$1
+  tag=$(release_tag "$version")
 
   require_command gh
 
   branch=$(git branch --show-current)
-  [[ $branch == "main" ]] ||
+  [ "$branch" = "main" ] ||
     die "publish must run from main, not '$branch'"
-  [[ -z $(git status --porcelain) ]] ||
+  [ -z "$(git status --porcelain)" ] ||
     die "working tree is not clean"
 
   git fetch --quiet origin main --tags
-  [[ $(git rev-parse HEAD) == $(git rev-parse origin/main) ]] ||
+  [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] ||
     die "local main and origin/main are not at the same commit"
 
-  if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
-    die "local tag v$version already exists"
+  if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+    die "local tag $tag already exists"
   fi
-  if git ls-remote --exit-code --tags origin "refs/tags/v$version" \
+  if git ls-remote --exit-code --tags origin "refs/tags/$tag" \
       >/dev/null 2>&1; then
-    die "remote tag v$version already exists"
+    die "remote tag $tag already exists"
   fi
 
   gh auth status >/dev/null
@@ -129,59 +138,62 @@ require_publish_state()
 
 publish_release()
 {
-  local version=$1
-  local run_id
+  version=$1
+  tag=$(release_tag "$version")
 
   require_publish_state "$version"
   run_checks "$version"
 
-  git tag -a "v$version" -m "adfmt $version"
-  if ! git push origin "refs/tags/v$version"; then
-    git tag -d "v$version" >/dev/null
-    die "could not push v$version; removed the local tag"
+  git tag -a "$tag" -m "adfmt $version"
+  if ! git push origin "refs/tags/$tag"; then
+    git tag -d "$tag" >/dev/null
+    die "could not push $tag; removed the local tag"
   fi
 
   printf 'release: waiting for the %s workflow\n' "$WORKFLOW"
-  for _ in {1..30}; do
+  run_id=
+  attempt=0
+  while [ "$attempt" -lt 30 ]; do
     run_id=$(
       gh run list \
         --repo "$REPOSITORY" \
         --workflow "$WORKFLOW" \
-        --branch "v$version" \
+        --branch "$tag" \
         --limit 1 \
         --json databaseId \
         --jq '.[0].databaseId // empty'
     )
-    [[ -n $run_id ]] && break
+    [ -n "$run_id" ] && break
     sleep 2
+    attempt=$((attempt + 1))
   done
-  [[ -n ${run_id:-} ]] ||
-    die "GitHub Actions run did not appear for v$version"
+  [ -n "$run_id" ] ||
+    die "GitHub Actions run did not appear for $tag"
 
   gh run watch "$run_id" --repo "$REPOSITORY" --exit-status
-  gh release view "v$version" --repo "$REPOSITORY"
+  gh release view "$tag" --repo "$REPOSITORY"
 }
 
 show_status()
 {
-  local version=$1
+  version=$1
+  tag=$(release_tag "$version")
 
   require_command gh
   gh run list \
     --repo "$REPOSITORY" \
     --workflow "$WORKFLOW" \
-    --branch "v$version" \
+    --branch "$tag" \
     --limit 1
-  gh release view "v$version" --repo "$REPOSITORY"
+  gh release view "$tag" --repo "$REPOSITORY"
 }
 
 main()
 {
-  local command=${1:-}
-  local version=${2:-}
-  local root
+  command=${1:-}
+  version=${2:-}
 
-  [[ $# -eq 2 ]] || {
+  [ "$#" -eq 2 ] || {
     usage
     exit 2
   }
@@ -191,15 +203,9 @@ main()
   cd "$root"
 
   case $command in
-    check)
-      run_checks "$version"
-      ;;
-    publish)
-      publish_release "$version"
-      ;;
-    status)
-      show_status "$version"
-      ;;
+    check) run_checks "$version" ;;
+    publish) publish_release "$version" ;;
+    status) show_status "$version" ;;
     *)
       usage
       exit 2

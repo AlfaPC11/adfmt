@@ -22,9 +22,10 @@ override GDC_FLAGS += $(DFLAGS)
 
 all: bin/adfmt
 
-bin/githash.txt:
+bin/githash.txt: VERSION
 	mkdir -p bin
-	git describe --tags > bin/githash.txt
+	(git describe --tags --match 'adfmt-v[0-9]*' 2>/dev/null || \
+		printf 'v%s\n' "$$(cat VERSION)") > bin/githash.txt
 
 dmd: bin/adfmt
 
@@ -37,6 +38,7 @@ gdc: bin/githash.txt
 
 test: debug
 	cd tests && ./test.d
+	cd tests && ./cli.sh
 
 bin/adfmt-test: bin/githash.txt $(SRC)
 	$(DC) $(DMD_TEST_FLAGS) $(filter %.d,$^) -of$@
@@ -59,9 +61,9 @@ install:
 	cp -f bin/adfmt $(DESTDIR)$(PREFIX)/bin/adfmt
 
 release:
-	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=0.3.6"; exit 2; }
+	@test -n "$(VERSION)" || { echo "Usage: make release VERSION=0.4.0"; exit 2; }
 	./release.sh publish "$(VERSION)"
 
 release-check:
-	@test -n "$(VERSION)" || { echo "Usage: make release-check VERSION=0.3.6"; exit 2; }
+	@test -n "$(VERSION)" || { echo "Usage: make release-check VERSION=0.4.0"; exit 2; }
 	./release.sh check "$(VERSION)"

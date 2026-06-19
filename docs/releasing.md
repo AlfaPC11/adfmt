@@ -29,13 +29,13 @@ Run the same metadata, unit, release-build, and regression checks used by the
 release helper:
 
 ```sh
-./release.sh check 0.3.6
+./release.sh check 0.4.0
 ```
 
 The equivalent Make target is:
 
 ```sh
-make release-check VERSION=0.3.6
+make release-check VERSION=0.4.0
 ```
 
 Validation does not create a tag, push commits, or modify a GitHub Release.
@@ -43,18 +43,21 @@ Validation does not create a tag, push commits, or modify a GitHub Release.
 ## Publish
 
 ```sh
-./release.sh publish 0.3.6
+./release.sh publish 0.4.0
 ```
 
 The version has no leading `v`. The command validates the repository, creates
-the annotated `v0.3.6` tag, pushes only that tag, waits for the `Release`
+the annotated `adfmt-v0.4.0` tag, pushes only that tag, waits for the `Release`
 workflow, and displays the resulting GitHub Release. It refuses dirty,
 diverged, non-`main`, and already-tagged states.
+
+The `adfmt-v` namespace deliberately avoids dfmt's inherited historical
+`v0.x.y` tags. Published adfmt tags are never moved or reused.
 
 The equivalent Make target is:
 
 ```sh
-make release VERSION=0.3.6
+make release VERSION=0.4.0
 ```
 
 If the tag push itself fails, the newly created local tag is removed. Once a
@@ -64,12 +67,11 @@ reusing or moving the published tag.
 ## Inspect
 
 ```sh
-./release.sh status 0.3.6
+./release.sh status 0.4.0
 ```
 
 This displays the matching workflow run and GitHub Release without changing
 either one.
 
-`release-windows.sh` is retained only as a migration notice. Windows artifacts
-are produced natively on GitHub's Windows runner and are not cross-compiled by
-the local release process.
+Windows artifacts are produced natively on GitHub's Windows runner and are not
+cross-compiled by the local release process.

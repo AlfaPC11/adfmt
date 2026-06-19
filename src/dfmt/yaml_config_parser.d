@@ -4,6 +4,12 @@ module dfmt.yaml_config_parser;
 
 import dyaml : Loader, Node, NodeID, NodeType;
 
+private enum maxConfigBytes = 1024 * 1024;
+private enum maxNestingDepth = 16;
+private enum maxOptionCount = 256;
+private enum maxKeyLength = 128;
+private enum maxScalarLength = 4096;
+
 struct AdfmtYamlDocument
 {
     string[string] values;
@@ -11,23 +17,25 @@ struct AdfmtYamlDocument
 
 AdfmtYamlDocument parseAdfmtYaml(string path)
 {
-    import std.file : readText;
+    import std.exception : enforce;
+    import std.file : getSize, readText;
     import std.format : format;
 
-    Node root;
     try
     {
+        enforce(getSize(path) <= maxConfigBytes,
+            ".adfmt exceeds the 1 MiB size limit");
         const yaml = prepareAdfmtYaml(readText(path));
-        root = Loader.fromString(yaml).load();
+        const root = Loader.fromString(yaml).load();
+        AdfmtYamlDocument result;
+        size_t optionCount;
+        flattenMapping(root, "", result, 0, optionCount);
+        return result;
     }
     catch (Exception error)
     {
         throw new Exception(format("%s: invalid .adfmt YAML: %s", path, error.msg));
     }
-
-    AdfmtYamlDocument result;
-    flattenMapping(root, "", result);
-    return result;
 }
 
 private string prepareAdfmtYaml(string yaml)
@@ -35,21 +43,25 @@ private string prepareAdfmtYaml(string yaml)
     return yaml;
 }
 
-private void flattenMapping(const Node node, string prefix, ref AdfmtYamlDocument result)
+private void flattenMapping(const Node node, string prefix,
+    ref AdfmtYamlDocument result, size_t depth, ref size_t optionCount)
 {
     import std.conv : to;
     import std.exception : enforce;
 
     enforce(node.nodeID == NodeID.mapping, "The .adfmt root must be a mapping");
+    enforce(depth <= maxNestingDepth, ".adfmt nesting exceeds 16 levels");
     foreach (const Node keyNode, const Node valueNode; node)
     {
         enforce(keyNode.type == NodeType.string, ".adfmt keys must be strings");
         const key = keyNode.as!string;
         const fullKey = prefix.length == 0 ? key : prefix ~ "." ~ key;
+        enforce(key.length <= maxKeyLength,
+            ".adfmt key exceeds 128 bytes: " ~ fullKey);
 
         if (valueNode.nodeID == NodeID.mapping)
         {
-            flattenMapping(valueNode, fullKey, result);
+            flattenMapping(valueNode, fullKey, result, depth + 1, optionCount);
             continue;
         }
 
@@ -57,6 +69,8 @@ private void flattenMapping(const Node node, string prefix, ref AdfmtYamlDocumen
             "Sequences are not supported for .adfmt option " ~ fullKey);
         enforce((fullKey in result.values) is null,
             "Duplicate .adfmt option " ~ fullKey);
+        enforce(++optionCount <= maxOptionCount,
+            ".adfmt contains more than 256 options");
 
         final switch (valueNode.type)
         {
@@ -70,7 +84,10 @@ private void flattenMapping(const Node node, string prefix, ref AdfmtYamlDocumen
             result.values[fullKey] = valueNode.as!real.to!string;
             break;
         case NodeType.string:
-            result.values[fullKey] = valueNode.as!string;
+            const value = valueNode.as!string;
+            enforce(value.length <= maxScalarLength,
+                ".adfmt scalar exceeds 4096 bytes for " ~ fullKey);
+            result.values[fullKey] = value;
             break;
         case NodeType.null_:
             result.values[fullKey] = "";

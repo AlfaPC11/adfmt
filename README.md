@@ -34,8 +34,9 @@ See [DIFFERENCES.md](DIFFERENCES.md) for the detailed comparison and
 [HISTORY.md](HISTORY.md) for fork provenance.
 
 ## Status
-**adfmt** is beta quality. Make backups of your files or use source control
-when using the **--inplace** option.
+**adfmt** is beta quality. `--inplace` stages complete batches, uses atomic
+per-file replacement, and rolls back replacements on failure. Source control
+is still recommended for reviewing formatter changes.
 
 ## Installation
 
@@ -112,8 +113,11 @@ The complete input-mode, value, precedence, and exit-status reference is in
 descriptions for offline use.
 
 * `--help | -h`: Display command line options.
-* `--inplace | --in-place | -i`: Replace explicitly provided files. Required
-  for multiple paths and directories; never enabled implicitly.
+* `--inplace | --in-place | -i`: Safely replace a complete formatted batch.
+  Symbolic links are skipped during directory traversal and rejected when
+  supplied directly.
+* `--stdin-filename`: Apply file-specific configuration while reading source
+  from standard input; intended for editor integrations.
 * `--align_switch_statements`: *see dfmt_align_switch_statements [below](#dfmt-specific-properties)*
 * `--brace_style`: *see dfmt_brace_style [below](#dfmt-specific-properties)*
 * `--declaration_brace_style`: *see dfmt_declaration_brace_style [below](#dfmt-specific-properties)*

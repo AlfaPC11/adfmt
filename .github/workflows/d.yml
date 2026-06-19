@@ -1,34 +1,32 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
 name: D
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [main]
   pull_request:
-    branches: [ "master" ]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  build-and-test:
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v3
-    - uses: dlang-community/setup-dlang@4c99aa991ce7d19dd3064de0a4f2f6b2f152e2d7
-
-    - name: 'Build & Test'
-      run: |
-        # Build the project, with its main file included, without unittests
-        dub build --compiler=$DC
-        # Build and run tests, as defined by `unittest` configuration
-        # In this mode, `mainSourceFile` is excluded and `version (unittest)` are included
-        # See https://dub.pm/package-format-json.html#configurations
-        dub test --compiler=$DC
-        # Run tests
-        cd tests && rdmd test
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # node24
+      - name: Install verified LDC 1.42.0
+        shell: sh
+        run: scripts/install-ldc.sh
+      - name: Build and test
+        shell: sh
+        run: |
+          dub test --compiler=ldc2
+          dub build --build=release --compiler=ldc2
+          ldc2 tests/test.d -of=/tmp/adfmt-regression-tests
+          cd tests
+          /tmp/adfmt-regression-tests
+          cd ..
+          ADFMT_BIN="$PWD/bin/adfmt" tests/cli.sh
+      - name: Check patch hygiene
+        shell: sh
+        run: git diff --check

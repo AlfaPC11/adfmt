@@ -119,7 +119,7 @@ unittest
  * Returns:
  *     The configuration for the file at the given path
  */
-EC getConfigFor(EC)(string path)
+EC getConfigFor(EC)(string path, bool exactDirectory = false)
 {
     import std.stdio : File;
     import std.regex : regex, match;
@@ -127,14 +127,15 @@ EC getConfigFor(EC)(string path)
         absolutePath;
     import std.algorithm : reverse, map, filter;
     import std.array : array;
-    import std.file : isDir;
+    import std.file : exists, isDir;
 
     EC result;
     EC[][] configs;
     immutable expanded = absolutePath(path);
-    immutable bool id = isDir(expanded);
+    immutable bool id = exists(expanded) && isDir(expanded);
     immutable string fileName = id ? "dummy.d" : baseName(expanded);
-    string[] pathParts = cast(string[]) pathSplitter(expanded).array();
+    immutable searchDirectory = id ? expanded : dirName(expanded);
+    string[] pathParts = cast(string[]) pathSplitter(searchDirectory).array();
 
     for (size_t i = pathParts.length; i > 1; i--)
     {
@@ -142,6 +143,8 @@ EC getConfigFor(EC)(string path)
         if (sections.length)
             configs ~= sections;
         if (!sections.map!(a => a.root).filter!(a => a == OptionalBoolean.t).empty)
+            break;
+        if (exactDirectory)
             break;
     }
     reverse(configs);
@@ -166,7 +169,8 @@ private EC[] parseConfig(EC)(string dir)
     import std.file : exists;
     import std.path : buildPath;
     import std.regex : matchAll;
-    import std.conv : to;
+    import std.conv : ConvException, to;
+    import std.format : format;
     import std.uni : toLower;
 
     EC section;
@@ -176,8 +180,10 @@ private EC[] parseConfig(EC)(string dir)
         return sections;
 
     File f = File(path);
+    size_t lineNumber;
     foreach (line; f.byLine())
     {
+        ++lineNumber;
         auto l = line.idup;
         auto headerMatch = l.matchAll(headerRe);
         if (headerMatch)
@@ -205,10 +211,28 @@ private EC[] parseConfig(EC)(string dir)
                     if (F == propertyName)
                     {
                         static if (is(FieldType == OptionalBoolean))
-                            mixin(configDot) = propertyValue == "true" ? OptionalBoolean.t
-                                : OptionalBoolean.f;
+                        {
+                            if (propertyValue == "true")
+                                mixin(configDot) = OptionalBoolean.t;
+                            else if (propertyValue == "false")
+                                mixin(configDot) = OptionalBoolean.f;
+                            else if (propertyValue == "unset")
+                                mixin(configDot) = OptionalBoolean._unspecified;
+                            else
+                                throw new Exception(format(
+                                    "%s:%d: invalid boolean '%s' for %s; "
+                                    ~ "expected true, false, or unset",
+                                    path, lineNumber, propertyValue, propertyName));
+                        }
                         else
-                                    mixin(configDot) = to!(FieldType)(propertyValue);
+                        {
+                            try
+                                mixin(configDot) = to!(FieldType)(propertyValue);
+                            catch (ConvException)
+                                throw new Exception(format(
+                                    "%s:%d: invalid value '%s' for %s",
+                                    path, lineNumber, propertyValue, propertyName));
+                        }
                     }
                 }
             }

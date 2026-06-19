@@ -13,6 +13,7 @@ _adfmt()
 		--help -h
 		--version
 		--inplace --in-place -i
+		--stdin-filename
 		--config -c
 		--align_switch_statements
 		--brace_style
@@ -102,6 +103,10 @@ _adfmt()
 	case $prev in
 		--config|-c)
 			_filedir -d
+			return 0
+			;;
+		--stdin-filename)
+			_filedir '@(d|D)'
 			return 0
 			;;
 	esac

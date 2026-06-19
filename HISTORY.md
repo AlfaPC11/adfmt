@@ -53,6 +53,20 @@ function-literal brace styles, plus readable binary-operator wrapping
 direction. Bash completion was expanded to cover the complete CLI, typed
 values, configuration directories, and D source files.
 
+### Version 0.4.0
+
+The command-line path became safer for editor and batch use:
+
+- in-place writes are staged beside their sources and committed with rollback
+- recursive formatting skips symbolic links
+- `--stdin-filename` preserves file-specific configuration for integrations
+- EditorConfig and YAML input validation now reject malformed or excessive data
+- release tags moved to the collision-free `adfmt-v` namespace
+
+The release pipeline gained least-privilege jobs, immutable action revisions,
+verified tool downloads, tracked DUB dependency selections, and broader CLI
+regression coverage.
+
 ## Maintenance policy
 
 adfmt keeps dfmt-derived code under BSL-1.0 and preserves upstream copyright

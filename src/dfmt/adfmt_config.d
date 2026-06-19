@@ -12,7 +12,7 @@ Config getAdfmtConfigFor(string path, bool exactDirectory = false)
     import std.path : absolutePath, buildPath, dirName;
 
     string directory = absolutePath(path);
-    if (!isDir(directory))
+    if (!exists(directory) || !isDir(directory))
         directory = dirName(directory);
 
     while (true)

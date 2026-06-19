@@ -36,11 +36,11 @@ Open a new terminal after installation, then verify:
 adfmt --version
 ```
 
-The installer records whether it added the directory. The uninstaller removes
-the normalized adfmt installation directory only when that record exists,
-while preserving every unrelated entry. A matching PATH entry that existed
-before installation is left untouched. If the PATH task was not selected,
-adfmt can still be run using its full executable path.
+The installer records both whether it added the directory and the exact entry
+it added. The uninstaller removes only that normalized entry while preserving
+unrelated and empty entries. A matching PATH entry that existed before
+installation is left untouched. If the PATH task was not selected, adfmt can
+still be run using its full executable path.
 
 ## Portable executable
 

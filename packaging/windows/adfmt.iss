@@ -53,8 +53,8 @@ Source: "..\..\NOTICE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\adfmt command prompt"; Filename: "{cmd}"; \
-  Parameters: "/K ""cd /d {app} && adfmt --help"""; WorkingDir: "{app}"
+Name: "{group}\adfmt help"; Filename: "{app}\{#MyAppExeName}"; \
+  Parameters: "--help"; WorkingDir: "{app}"
 Name: "{group}\Uninstall adfmt"; Filename: "{uninstallexe}"
 
 [Run]
@@ -67,6 +67,7 @@ const
   EnvironmentValue = 'Path';
   AdfmtRegistryKey = 'Software\Alfa\adfmt';
   PathAddedValue = 'PathAddedByInstaller';
+  PathEntryValue = 'PathEntry';
 
 function NormalizePathEntry(Value: string): string;
 begin
@@ -129,33 +130,38 @@ var
   Updated: string;
   Separator: Integer;
   Item: string;
+  IsLast: Boolean;
+  IsFirst: Boolean;
 begin
   if not RegQueryStringValue(HKCU, EnvironmentKey, EnvironmentValue, Paths) then
     Exit;
 
   Remaining := Paths;
   Updated := '';
+  IsFirst := True;
   repeat
     Separator := Pos(';', Remaining);
     if Separator = 0 then
     begin
       Item := Remaining;
       Remaining := '';
+      IsLast := True;
     end
     else
     begin
       Item := Copy(Remaining, 1, Separator - 1);
       Delete(Remaining, 1, Separator);
+      IsLast := False;
     end;
 
-    if (Trim(Item) <> '') and
-       (NormalizePathEntry(Item) <> NormalizePathEntry(Entry)) then
+    if NormalizePathEntry(Item) <> NormalizePathEntry(Entry) then
     begin
-      if Updated <> '' then
+      if not IsFirst then
         Updated := Updated + ';';
       Updated := Updated + Item;
+      IsFirst := False;
     end;
-  until Remaining = '';
+  until IsLast;
 
   RegWriteExpandStringValue(HKCU, EnvironmentKey, EnvironmentValue, Updated);
 end;
@@ -164,19 +170,28 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if (CurStep = ssPostInstall) and WizardIsTaskSelected('addtopath') and
      AddToUserPath(ExpandConstant('{app}')) then
+  begin
     RegWriteDWordValue(HKCU, AdfmtRegistryKey, PathAddedValue, 1);
+    RegWriteStringValue(HKCU, AdfmtRegistryKey, PathEntryValue,
+      ExpandConstant('{app}'));
+  end;
 end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   PathAdded: Cardinal;
+  PathEntry: string;
 begin
   if (CurUninstallStep = usUninstall) and
      RegQueryDWordValue(HKCU, AdfmtRegistryKey, PathAddedValue, PathAdded) and
      (PathAdded = 1) then
   begin
-    RemoveFromUserPath(ExpandConstant('{app}'));
+    if not RegQueryStringValue(HKCU, AdfmtRegistryKey, PathEntryValue,
+      PathEntry) then
+      PathEntry := ExpandConstant('{app}');
+    RemoveFromUserPath(PathEntry);
     RegDeleteValue(HKCU, AdfmtRegistryKey, PathAddedValue);
+    RegDeleteValue(HKCU, AdfmtRegistryKey, PathEntryValue);
     RegDeleteKeyIfEmpty(HKCU, AdfmtRegistryKey);
   end;
 end;

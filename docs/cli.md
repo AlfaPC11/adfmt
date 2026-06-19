@@ -18,10 +18,12 @@ adfmt [options] [file-or-directory ...]
 | `adfmt --inplace first.d second.d` | multiple files | replaces the files |
 | `adfmt --inplace source/` | every `.d` file below the directory | replaces the files |
 
-Formatting failures do not replace the affected file. Directory traversal is
-recursive. Multiple paths and directories are rejected unless `--inplace` is
-explicitly present. `--inplace` is rejected for stdin, so adfmt never enables
-file replacement implicitly.
+All outputs are prepared before `--inplace` replaces any source. Replacement
+uses temporary files beside the originals and attempts to restore every
+original if committing the batch fails. Directory traversal is recursive and
+skips symbolic links. An explicitly supplied symbolic link is rejected for
+in-place formatting. Multiple paths and directories are rejected unless
+`--inplace` is explicitly present.
 
 ## General options
 
@@ -29,7 +31,8 @@ file replacement implicitly.
 |--------|-------|--------|
 | `--help`, `-h` | none | Print built-in help and exit. |
 | `--version` | none | Print the build version and exit. |
-| `--inplace`, `--in-place`, `-i` | none | Replace each successfully formatted input file. |
+| `--inplace`, `--in-place`, `-i` | none | Safely replace the complete successfully formatted batch. |
+| `--stdin-filename` | path | Use a source path for configuration and diagnostics while reading stdin. |
 | `--config`, `-c` | existing directory | Load `.editorconfig` and `.adfmt` only from that directory. |
 
 Without `--config`, adfmt searches for the nearest `.adfmt` from each source
@@ -158,4 +161,10 @@ Use a dedicated configuration directory:
 
 ```sh
 adfmt --config=config/formatting --inplace source/
+```
+
+Format editor input while retaining file-specific configuration:
+
+```sh
+adfmt --stdin-filename=source/app.d < source/app.d
 ```

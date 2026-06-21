@@ -47,3 +47,16 @@ still be run using its full executable path.
 The non-setup `adfmt-<version>-windows-x86_64.exe` asset is portable. It does
 not modify `PATH`, create shortcuts, or install documentation. Rename or place
 it as desired and invoke it directly.
+
+## Building from source
+
+From a Developer Command Prompt or another Windows terminal with DUB and LDC
+available in `PATH`, run:
+
+```cmd
+build.cmd
+```
+
+This creates a release build with `ldc2`. Use `build.cmd debug` for a debug
+build. Set the `DC` environment variable before invoking the script to select
+another D compiler.

@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - "adfmt-v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Existing adfmt release version to rebuild (for example, 0.4.0)"
+        required: true
+        type: string
+
+env:
+  ADFMT_RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('adfmt-v{0}', inputs.version) || github.ref_name }}
 
 permissions:
   contents: read
@@ -13,14 +22,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # node24
+        with:
+          ref: ${{ env.ADFMT_RELEASE_TAG }}
       - name: Install verified LDC 1.42.0
         shell: sh
         run: scripts/install-ldc.sh
       - name: Verify release metadata
         shell: sh
         run: |
-          VERSION=${GITHUB_REF_NAME#adfmt-v}
-          test "$GITHUB_REF_NAME" = "adfmt-v$VERSION"
+          VERSION=${ADFMT_RELEASE_TAG#adfmt-v}
+          test "$ADFMT_RELEASE_TAG" = "adfmt-v$VERSION"
           test "$(sed -n 's/^pkgver=//p' packaging/arch/PKGBUILD)" = "$VERSION"
           test "$(tr -d '\r\n' < VERSION)" = "$VERSION"
           test "$(sed -n 's/^version: //p' packaging/nfpm.yaml)" = '${ADFMT_VERSION}'
@@ -40,6 +51,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # node24
+        with:
+          ref: ${{ env.ADFMT_RELEASE_TAG }}
       - name: Install verified LDC 1.42.0
         shell: sh
         run: scripts/install-ldc.sh
@@ -64,7 +77,7 @@ jobs:
       - name: Build deb and rpm packages
         shell: sh
         run: |
-          VERSION=${GITHUB_REF_NAME#adfmt-v}
+          VERSION=${ADFMT_RELEASE_TAG#adfmt-v}
           mkdir -p dist
           ADFMT_VERSION="$VERSION" nfpm package \
             --config packaging/nfpm.yaml \
@@ -89,12 +102,15 @@ jobs:
         shell: sh
         run: pacman -Syu --noconfirm git dub ldc sudo
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # node24
+        with:
+          ref: ${{ env.ADFMT_RELEASE_TAG }}
       - name: Build source and Arch Linux packages
         shell: sh
         run: |
-          VERSION=${GITHUB_REF_NAME#adfmt-v}
+          VERSION=${ADFMT_RELEASE_TAG#adfmt-v}
           SOURCE_CACHE="adfmt-$VERSION.tar.gz"
           SOURCE_ASSET="adfmt-$VERSION-source.tar.gz"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
           chmod +x scripts/create-source-archive.sh tests/cli.sh
           scripts/create-source-archive.sh "$VERSION" "packaging/arch/$SOURCE_CACHE"
           EXPECTED=$(sed -n "s/^sha256sums=('\([^']*\)').*/\1/p" packaging/arch/PKGBUILD)
@@ -118,6 +134,8 @@ jobs:
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # node24
+        with:
+          ref: ${{ env.ADFMT_RELEASE_TAG }}
       - name: Install verified LDC 1.42.0
         shell: pwsh
         run: |
@@ -136,11 +154,11 @@ jobs:
       - name: Build adfmt.exe
         run: dub build --build=release --compiler=ldc2
       - name: Install pinned Inno Setup
-        run: choco install innosetup --version=6.3.2 --no-progress --yes
+        run: choco install innosetup --version=6.3.2 --allow-downgrade --no-progress --yes
       - name: Build installer
         shell: pwsh
         run: |
-          $version = "${env:GITHUB_REF_NAME}".Substring("adfmt-v".Length)
+          $version = "${env:ADFMT_RELEASE_TAG}".Substring("adfmt-v".Length)
           $env:ADFMT_VERSION = $version
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item bin/adfmt.exe "dist/adfmt-$version-windows-x86_64.exe"
@@ -171,8 +189,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION=${GITHUB_REF_NAME#adfmt-v}
-          gh release create "$GITHUB_REF_NAME" dist/* \
+          VERSION=${ADFMT_RELEASE_TAG#adfmt-v}
+          gh release create "$ADFMT_RELEASE_TAG" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "adfmt $VERSION" \
             --generate-notes \

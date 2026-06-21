@@ -40,6 +40,10 @@ is still recommended for reviewing formatter changes.
 
 ## Installation
 
+See [docs/installation.md](docs/installation.md) for package selection,
+checksum verification, exact platform commands, source builds, and VS Code
+installation.
+
 ### GitHub Releases
 
 Versioned packages are published on

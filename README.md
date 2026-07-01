@@ -1,5 +1,9 @@
 # adfmt
 
+> **Maintenance status:** This repository will not receive further updates or
+> regular commits. It will remain available, may be forked, and can still be
+> used as-is.
+
 **adfmt** is Alfa's D Formatter, a fork of **dfmt** with a validated YAML
 configuration system and independently configurable D syntax categories.
 
